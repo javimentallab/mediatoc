@@ -166,6 +166,10 @@ RUN node /tmp/patch_34_pages_in_queries.js
 COPY patch_35_list_parity.js /tmp/patch_35_list_parity.js
 RUN node /tmp/patch_35_list_parity.js
 
+# --- patch_36: PUT /api/seen removes finished TV shows from the watchlist ---
+COPY patch_36_tv_watchlist_on_seen.js /tmp/patch_36_tv_watchlist_on_seen.js
+RUN node /tmp/patch_36_tv_watchlist_on_seen.js
+
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
 # This bucket MUST run last among the patches because css_rename and bundle_rename
