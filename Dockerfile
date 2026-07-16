@@ -159,6 +159,9 @@ RUN node /tmp/patch_32_metadata_rotate_oldest.js
 # --- patch_33: TV bulk mark-seen skips already-seen episodes (no dup passes) ---
 COPY patch_33_seen_tv_skip_already_seen.js /tmp/patch_33_seen_tv_skip_already_seen.js
 RUN node /tmp/patch_33_seen_tv_skip_already_seen.js
+# --- patch_34: expose numberOfPages in /api/items and /api/list/items (page totals match the ficha) ---
+COPY patch_34_pages_in_queries.js /tmp/patch_34_pages_in_queries.js
+RUN node /tmp/patch_34_pages_in_queries.js
 
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
