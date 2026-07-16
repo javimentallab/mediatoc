@@ -141,6 +141,24 @@ RUN node /tmp/patch_26_home_perf.js
 # --- patch_27: TV seen flag requires status NOT Returning/InProduction/Planned ---
 COPY patch_27_tv_seen_requires_ended.js /tmp/patch_27_tv_seen_requires_ended.js
 RUN node /tmp/patch_27_tv_seen_requires_ended.js
+# --- patch_28: card progress bar ignores the audioProgress=1 completed-pass sentinel ---
+COPY patch_28_card_progress_sentinel.js /tmp/patch_28_card_progress_sentinel.js
+RUN node /tmp/patch_28_card_progress_sentinel.js
+# --- patch_29: list pages select audioProgress + first-unwatched-episode progress ---
+COPY patch_29_list_items_progress_columns.js /tmp/patch_29_list_items_progress_columns.js
+RUN node /tmp/patch_29_list_items_progress_columns.js
+# --- patch_30: sidebar "Marcar como completado" atomic (no dup seen, awaits cleanup, clears AIP) ---
+COPY patch_30_sidebar_complete_atomic.js /tmp/patch_30_sidebar_complete_atomic.js
+RUN node /tmp/patch_30_sidebar_complete_atomic.js
+# --- patch_31: items base filter accepts progress-only / AIP-only items ---
+COPY patch_31_items_basefilter_progress.js /tmp/patch_31_items_basefilter_progress.js
+RUN node /tmp/patch_31_items_basefilter_progress.js
+# --- patch_32: metadata throttle rotates oldest-first (fixes refresh starvation) ---
+COPY patch_32_metadata_rotate_oldest.js /tmp/patch_32_metadata_rotate_oldest.js
+RUN node /tmp/patch_32_metadata_rotate_oldest.js
+# --- patch_33: TV bulk mark-seen skips already-seen episodes (no dup passes) ---
+COPY patch_33_seen_tv_skip_already_seen.js /tmp/patch_33_seen_tv_skip_already_seen.js
+RUN node /tmp/patch_33_seen_tv_skip_already_seen.js
 
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
