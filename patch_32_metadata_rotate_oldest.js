@@ -30,6 +30,28 @@ if (c.split(old).length - 1 !== 1) {
   process.exit(1);
 }
 c = c.replace(old, fresh);
+
+// A permanently-failing item (e.g. UNIQUE tmdbId collision after a TMDB
+// reshuffle, as House of the Dragon was) never advances lastTimeUpdated, so
+// with oldest-first it would hog a batch slot forever. Push failures to the
+// back of the queue too; the nightly force-refresh retries them anyway.
+const catchOld =
+  "    } catch (error) {\n" +
+  "      if (!String(error.message || '').includes('UNIQUE constraint failed: episode.tmdbId')) _logger.logger.error(_chalk.default.red(error.toString()));\n" +
+  "      numberOfFailures++;\n" +
+  "    }";
+const catchNew =
+  "    } catch (error) {\n" +
+  "      if (!String(error.message || '').includes('UNIQUE constraint failed: episode.tmdbId')) _logger.logger.error(_chalk.default.red(error.toString()));\n" +
+  "      numberOfFailures++;\n" +
+  "      // rotate-failed-to-back\n" +
+  "      try { await require('/app/build/dbconfig').Database.knex('mediaItem').where('id', mediaItem.id).update({ lastTimeUpdated: new Date().getTime() }); } catch (_) {}\n" +
+  "    }";
+if (c.split(catchOld).length - 1 !== 1) {
+  console.error('metadata rotate: catch anchor count != 1');
+  process.exit(1);
+}
+c = c.replace(catchOld, catchNew);
 fs.writeFileSync(path, c);
 try {
   delete require.cache[require.resolve(path)];
