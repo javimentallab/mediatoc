@@ -182,6 +182,10 @@ RUN node /tmp/patch_38_progress_modal_hours_minutes.js
 COPY patch_39_episode_progress_hours_minutes.js /tmp/patch_39_episode_progress_hours_minutes.js
 RUN node /tmp/patch_39_episode_progress_hours_minutes.js
 
+# --- patch_40: progress written in one view shows up in the others (cache + list query) ---
+COPY patch_40_progress_sync_views.js /tmp/patch_40_progress_sync_views.js
+RUN node /tmp/patch_40_progress_sync_views.js
+
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
 # This bucket MUST run last among the patches because css_rename and bundle_rename
