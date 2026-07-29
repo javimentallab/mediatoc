@@ -178,6 +178,10 @@ RUN node /tmp/patch_37_watchlist_order_added.js
 COPY patch_38_progress_modal_hours_minutes.js /tmp/patch_38_progress_modal_hours_minutes.js
 RUN node /tmp/patch_38_progress_modal_hours_minutes.js
 
+# --- patch_39: same hours+minutes progress for TV episodes (card + per-episode button) ---
+COPY patch_39_episode_progress_hours_minutes.js /tmp/patch_39_episode_progress_hours_minutes.js
+RUN node /tmp/patch_39_episode_progress_hours_minutes.js
+
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
 # This bucket MUST run last among the patches because css_rename and bundle_rename
