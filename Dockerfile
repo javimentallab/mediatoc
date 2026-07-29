@@ -170,6 +170,14 @@ RUN node /tmp/patch_35_list_parity.js
 COPY patch_36_tv_watchlist_on_seen.js /tmp/patch_36_tv_watchlist_on_seen.js
 RUN node /tmp/patch_36_tv_watchlist_on_seen.js
 
+# --- patch_37: watchlist sections ordered by "recently added to the watchlist" ---
+COPY patch_37_watchlist_order_added.js /tmp/patch_37_watchlist_order_added.js
+RUN node /tmp/patch_37_watchlist_order_added.js
+
+# --- patch_38: progress modal shows hours+minutes for movies/games (not bare minutes) ---
+COPY patch_38_progress_modal_hours_minutes.js /tmp/patch_38_progress_modal_hours_minutes.js
+RUN node /tmp/patch_38_progress_modal_hours_minutes.js
+
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
 # This bucket MUST run last among the patches because css_rename and bundle_rename
