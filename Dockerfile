@@ -186,6 +186,10 @@ RUN node /tmp/patch_39_episode_progress_hours_minutes.js
 COPY patch_40_progress_sync_views.js /tmp/patch_40_progress_sync_views.js
 RUN node /tmp/patch_40_progress_sync_views.js
 
+# --- patch_41: /youtube "Marcar visto" ya no depende de que YouTube suelte la duracion ---
+COPY patch_41_youtube_watched_resilient.js /tmp/patch_41_youtube_watched_resilient.js
+RUN node /tmp/patch_41_youtube_watched_resilient.js
+
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
 # This bucket MUST run last among the patches because css_rename and bundle_rename
