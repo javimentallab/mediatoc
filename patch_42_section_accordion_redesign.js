@@ -92,27 +92,57 @@ if (js.includes(MARKER)) {
   console.log('section accordion: bundle already patched');
 } else {
   const WRAP_PREFIX = 'r.createElement("div",{className:';
-  const WRAP_CLASS = '"mb-3 border border-slate-300 dark:border-slate-700 rounded overflow-hidden"';
-  const WRAP = WRAP_PREFIX + WRAP_CLASS + '}';
+
+  // Dos markups distintos para la misma idea:
+  //   `_Section`    → tarjeta con borde completo (En proceso, Watchlist, …)
+  //   `_SubSection` → filete a la izquierda, anidado dentro de un _Section
+  //                   (los subapartados de Juegos y de la Watchlist)
+  // Si solo se migrase el primero, al abrir "Juegos" aparecerían dentro
+  // desplegables con el diseño viejo. Los dos acaban en `.mt-sec`; el anidado
+  // se queda además con `.mt-subsec`, que lo aligera.
+  const VARIANTS = [
+    {
+      name: 'section',
+      wrapClass: '"mb-3 border border-slate-300 dark:border-slate-700 rounded overflow-hidden"',
+      newClass: '"mt-sec"',
+      btnRe: new RegExp(
+        '^r\\.createElement\\("button",\\{onClick:([\\s\\S]*?),className:' +
+        '"w-full text-left text-xl font-semibold px-3 py-2 bg-slate-100 dark:bg-slate-800 ' +
+        'hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center gap-2"\\},' +
+        'r\\.createElement\\("i",\\{className:"material-icons"\\},(\\w+)\\?"expand_more":"chevron_right"\\),' +
+        '([\\s\\S]*)\\)$'
+      ),
+    },
+    {
+      name: 'subsection',
+      wrapClass: '"mb-2 ml-3 border-l-2 border-slate-300 dark:border-slate-700 pl-2"',
+      newClass: '"mt-sec mt-subsec"',
+      btnRe: new RegExp(
+        '^r\\.createElement\\("button",\\{onClick:([\\s\\S]*?),className:' +
+        '"w-full text-left text-lg px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-700 ' +
+        'flex items-center gap-2"\\},' +
+        'r\\.createElement\\("i",\\{className:"material-icons text-base"\\},(\\w+)\\?"expand_more":"chevron_right"\\),' +
+        '([\\s\\S]*)\\)$'
+      ),
+    },
+  ];
 
   const BTN_START = 'r.createElement("button",{onClick:';
-  const BTN_RE = new RegExp(
-    '^r\\.createElement\\("button",\\{onClick:([\\s\\S]*?),className:' +
-    '"w-full text-left text-xl font-semibold px-3 py-2 bg-slate-100 dark:bg-slate-800 ' +
-    'hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center gap-2"\\},' +
-    'r\\.createElement\\("i",\\{className:"material-icons"\\},(\\w+)\\?"expand_more":"chevron_right"\\),' +
-    '([\\s\\S]*)\\)$'
-  );
-
-  // Índices de todas las ocurrencias, de derecha a izquierda: así los splices
-  // no invalidan los índices de los que quedan por procesar.
-  const hits = [];
-  for (let p = js.indexOf(WRAP); p !== -1; p = js.indexOf(WRAP, p + 1)) hits.push(p);
-  if (hits.length === 0) throw new Error('section accordion: wrapper markup not found (bundle layout changed?)');
-  hits.reverse();
-
   let done = 0;
   const skipped = [];
+
+for (const V of VARIANTS) {
+  const WRAP_CLASS = V.wrapClass;
+  const BTN_RE = V.btnRe;
+  const WRAP = WRAP_PREFIX + WRAP_CLASS + '}';
+
+  // Índices de todas las ocurrencias, de derecha a izquierda: así los splices
+  // no invalidan los índices de los que quedan por procesar. Se recalculan por
+  // variante, sobre el `js` ya modificado por la anterior.
+  const hits = [];
+  for (let p = js.indexOf(WRAP); p !== -1; p = js.indexOf(WRAP, p + 1)) hits.push(p);
+  if (hits.length === 0) throw new Error('section accordion: no aparece el markup de "' + V.name + '" (¿cambió el bundle?)');
+  hits.reverse();
 
   for (const idx of hits) {
     // --- botón -------------------------------------------------------------
@@ -167,10 +197,11 @@ if (js.includes(MARKER)) {
     }
     js = js.slice(0, btnIdx) + newBtn + js.slice(btnEnd + 1);
     js = js.slice(0, idx + WRAP_PREFIX.length) +
-         '"mt-sec"+(' + openVar + '?" is-open":"")' +
+         V.newClass + '+(' + openVar + '?" is-open":"")' +
          js.slice(idx + WRAP_PREFIX.length + WRAP_CLASS.length);
     done++;
   }
+}
 
   if (done === 0) throw new Error('section accordion: 0 sections rewritten (' + skipped.join('; ') + ')');
   if (skipped.length) console.log('section accordion: skipped ' + skipped.length + ' → ' + skipped.join('; '));
@@ -214,29 +245,45 @@ if (css.includes(CSS_MARKER)) {
   console.log('section accordion: css already patched');
 } else {
   const rules = '\n' + CSS_MARKER + '\n' + [
+    // --- tokens compartidos ------------------------------------------------
+    // Viven en :root, no en .mt-sec, porque los reutiliza el resto del fork
+    // (nav, desplegables, drawer). El tema oscuro se cuela con `.dark` en
+    // <html>, así que :root.dark (0,1,0) le gana a :root (0,0,1) sin
+    // !important y sin duplicar cada regla.
+    ':root{',
+      '--mt-line:rgba(15,23,42,.13);',
+      '--mt-line-hi:rgba(15,23,42,.22);',
+      '--mt-surface:#fff;',
+      '--mt-surface-2:#fff;',
+      '--mt-hover:rgba(15,23,42,.055);',
+      '--mt-fg:#0f172a;',
+      '--mt-dim:rgba(15,23,42,.5);',
+      '--mt-accent:#2563eb;',
+    '}',
+    ':root.dark{',
+      '--mt-line:rgba(255,255,255,.10);',
+      '--mt-line-hi:rgba(255,255,255,.20);',
+      '--mt-surface:#171717;',
+      '--mt-surface-2:#1c1c1c;',
+      '--mt-hover:rgba(255,255,255,.06);',
+      '--mt-fg:#f1f5f9;',
+      '--mt-dim:rgba(241,245,249,.5);',
+      '--mt-accent:#60a5fa;',
+    '}',
+
     // --- tarjeta ---------------------------------------------------------
     '.mt-sec{',
-      '--mt-sec-line:rgba(15,23,42,.13);',
-      '--mt-sec-line-hi:rgba(15,23,42,.22);',
-      '--mt-sec-surface:#fff;',
-      '--mt-sec-head:rgba(15,23,42,.025);',
-      '--mt-sec-head-hi:rgba(15,23,42,.055);',
-      '--mt-sec-fg:#0f172a;',
-      '--mt-sec-dim:rgba(15,23,42,.5);',
-      '--mt-sec-accent:#2563eb;',
+      '--mt-sec-line:var(--mt-line);',
+      '--mt-sec-line-hi:var(--mt-line-hi);',
+      '--mt-sec-surface:var(--mt-surface);',
+      '--mt-sec-head:transparent;',
+      '--mt-sec-head-hi:var(--mt-hover);',
+      '--mt-sec-fg:var(--mt-fg);',
+      '--mt-sec-dim:var(--mt-dim);',
+      '--mt-sec-accent:var(--mt-accent);',
       'margin-bottom:10px;border:1px solid var(--mt-sec-line);border-radius:12px;',
       'background:var(--mt-sec-surface);overflow:hidden;',
       'transition:border-color .18s ease,box-shadow .18s ease;',
-    '}',
-    '.dark .mt-sec{',
-      '--mt-sec-line:rgba(255,255,255,.10);',
-      '--mt-sec-line-hi:rgba(255,255,255,.20);',
-      '--mt-sec-surface:#171717;',
-      '--mt-sec-head:rgba(255,255,255,.02);',
-      '--mt-sec-head-hi:rgba(255,255,255,.06);',
-      '--mt-sec-fg:#f1f5f9;',
-      '--mt-sec-dim:rgba(241,245,249,.5);',
-      '--mt-sec-accent:#60a5fa;',
     '}',
     '.mt-sec:hover{border-color:var(--mt-sec-line-hi)}',
     '.mt-sec.is-open{border-color:var(--mt-sec-line-hi);box-shadow:0 1px 2px rgba(0,0,0,.06)}',
@@ -286,9 +333,9 @@ if (css.includes(CSS_MARKER)) {
     '.mt-sec-b>.p-2,.mt-sec-b>.p-3,.mt-sec-b>.py-1{padding:0}',
     // Acordeón anidado (_SubSection dentro de _Section): sin superficie propia
     // para que no parezca una tarjeta flotando sobre otra.
-    '.mt-sec .mt-sec{border-radius:10px;background:transparent;margin-bottom:8px}',
-    '.mt-sec .mt-sec:last-child{margin-bottom:0}',
-    '.mt-sec .mt-sec>.mt-sec-h{font-size:.9rem;padding:9px 12px 9px 14px}',
+    '.mt-subsec,.mt-sec .mt-sec{border-radius:10px;background:transparent;margin-bottom:8px}',
+    '.mt-subsec:last-child,.mt-sec .mt-sec:last-child{margin-bottom:0}',
+    '.mt-subsec>.mt-sec-h,.mt-sec .mt-sec>.mt-sec-h{font-size:.9rem;padding:9px 12px 9px 14px}',
     '@keyframes mt-sec-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}',
     '@media (prefers-reduced-motion:reduce){',
       '.mt-sec-b{animation:none}',

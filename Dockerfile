@@ -202,6 +202,10 @@ RUN node /tmp/patch_43_shell_full_width.js
 COPY patch_44_airing_tv_stays_in_progress.js /tmp/patch_44_airing_tv_stays_in_progress.js
 RUN node /tmp/patch_44_airing_tv_stays_in_progress.js
 
+# --- patch_45: barra principal homogeneizada con el resto (tokens de :root) ---
+COPY patch_45_nav_redesign.js /tmp/patch_45_nav_redesign.js
+RUN node /tmp/patch_45_nav_redesign.js
+
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
 # This bucket MUST run last among the patches because css_rename and bundle_rename
