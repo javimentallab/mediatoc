@@ -190,6 +190,10 @@ RUN node /tmp/patch_40_progress_sync_views.js
 COPY patch_41_youtube_watched_resilient.js /tmp/patch_41_youtube_watched_resilient.js
 RUN node /tmp/patch_41_youtube_watched_resilient.js
 
+# --- patch_42: rediseno del acordeon de secciones (9 copias del mismo markup) ---
+COPY patch_42_section_accordion_redesign.js /tmp/patch_42_section_accordion_redesign.js
+RUN node /tmp/patch_42_section_accordion_redesign.js
+
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
 # This bucket MUST run last among the patches because css_rename and bundle_rename
