@@ -194,6 +194,14 @@ RUN node /tmp/patch_41_youtube_watched_resilient.js
 COPY patch_42_section_accordion_redesign.js /tmp/patch_42_section_accordion_redesign.js
 RUN node /tmp/patch_42_section_accordion_redesign.js
 
+# --- patch_43: shell a ancho completo, alineado con el nav en cualquier resolucion ---
+COPY patch_43_shell_full_width.js /tmp/patch_43_shell_full_width.js
+RUN node /tmp/patch_43_shell_full_width.js
+
+# --- patch_44: una serie en emision sigue en En proceso aunque estes al dia ---
+COPY patch_44_airing_tv_stays_in_progress.js /tmp/patch_44_airing_tv_stays_in_progress.js
+RUN node /tmp/patch_44_airing_tv_stays_in_progress.js
+
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
 # This bucket MUST run last among the patches because css_rename and bundle_rename
