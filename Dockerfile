@@ -206,6 +206,10 @@ RUN node /tmp/patch_44_airing_tv_stays_in_progress.js
 COPY patch_45_nav_redesign.js /tmp/patch_45_nav_redesign.js
 RUN node /tmp/patch_45_nav_redesign.js
 
+# --- patch_46: las secciones de En proceso arrancan abiertas ---
+COPY patch_46_inprogress_sections_open.js /tmp/patch_46_inprogress_sections_open.js
+RUN node /tmp/patch_46_inprogress_sections_open.js
+
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
 # This bucket MUST run last among the patches because css_rename and bundle_rename
