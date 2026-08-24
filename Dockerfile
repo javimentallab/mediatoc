@@ -210,6 +210,10 @@ RUN node /tmp/patch_45_nav_redesign.js
 COPY patch_46_inprogress_sections_open.js /tmp/patch_46_inprogress_sections_open.js
 RUN node /tmp/patch_46_inprogress_sections_open.js
 
+# --- patch_47: la portada (Inicio) centrada, resumen y secciones ---
+COPY patch_47_home_centered.js /tmp/patch_47_home_centered.js
+RUN node /tmp/patch_47_home_centered.js
+
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
 # This bucket MUST run last among the patches because css_rename and bundle_rename
