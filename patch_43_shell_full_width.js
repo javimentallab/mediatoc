@@ -27,9 +27,10 @@
 // Efecto colateral necesario: `.items-grid` seguía capado a 900px por
 // patch_css_items_grid_fluid (patch_10). Con el shell a ancho completo ese cap
 // dejaba la rejilla de carátulas como una columna estrecha centrada dentro de
-// una tarjeta enorme. Se levanta el cap y se pasa a `flex-start` para que la
-// última fila incompleta quede alineada con la primera columna en vez de
-// centrada. patch_10 corre DESPUÉS que este patch, así que sus reglas
+// una tarjeta enorme. Se levanta el cap para que la rejilla se expanda con la
+// sección, y se deja `justify-content:center` para que las carátulas queden
+// centradas en su sección tanto si llenan una fila como si son cuatro sueltas
+// (v2, 24-ago-2026). patch_10 corre DESPUÉS que este patch, así que sus reglas
 // `!important` se ganan por especificidad (`body .items-grid` = 0,1,1 contra
 // `.items-grid` = 0,1,0), no por orden.
 //
@@ -73,7 +74,7 @@ const cssPath = child
   .toString().trim();
 let css = fs.readFileSync(cssPath, 'utf8');
 
-const CSS_MARKER = '/* mt-fork: shell full width v1 */';
+const CSS_MARKER = '/* mt-fork: shell full width v2 (grid centered) */';
 if (css.includes(CSS_MARKER)) {
   console.log('shell full width: css already patched');
 } else {
@@ -95,9 +96,10 @@ if (css.includes(CSS_MARKER)) {
     // sumarlo al gutter (el vertical sí hace falta).
     '.mt-shell>div{width:100%;padding-left:0;padding-right:0;box-sizing:border-box}',
 
-    // Rejilla de carátulas: fuera el cap de 900px, que con el shell fluido
-    // dejaba la rejilla flotando en el centro de una tarjeta muy ancha.
-    'body .items-grid{max-width:none!important;justify-content:flex-start!important}',
+    // Rejilla de carátulas: fuera el cap de 900px (que con el shell fluido la
+    // dejaba flotando en una tarjeta muy ancha) pero centrada dentro de su
+    // sección.
+    'body .items-grid{max-width:none!important;justify-content:center!important}',
   ].join('') + '\n';
 
   css = css + rules;
