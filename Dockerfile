@@ -214,6 +214,10 @@ RUN node /tmp/patch_46_inprogress_sections_open.js
 COPY patch_47_home_centered.js /tmp/patch_47_home_centered.js
 RUN node /tmp/patch_47_home_centered.js
 
+# --- patch_48: sin refetch espontaneo al recuperar foco o red (el parpadeo) ---
+COPY patch_48_no_refetch_on_focus.js /tmp/patch_48_no_refetch_on_focus.js
+RUN node /tmp/patch_48_no_refetch_on_focus.js
+
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
 # This bucket MUST run last among the patches because css_rename and bundle_rename
