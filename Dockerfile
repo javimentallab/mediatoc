@@ -218,6 +218,10 @@ RUN node /tmp/patch_47_home_centered.js
 COPY patch_48_no_refetch_on_focus.js /tmp/patch_48_no_refetch_on_focus.js
 RUN node /tmp/patch_48_no_refetch_on_focus.js
 
+# --- patch_49: al acabar la temporada, la serie sale sola de En proceso ---
+COPY patch_49_aip_drops_when_season_over.js /tmp/patch_49_aip_drops_when_season_over.js
+RUN node /tmp/patch_49_aip_drops_when_season_over.js
+
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
 # This bucket MUST run last among the patches because css_rename and bundle_rename
