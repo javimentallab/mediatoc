@@ -222,6 +222,10 @@ RUN node /tmp/patch_48_no_refetch_on_focus.js
 COPY patch_49_aip_drops_when_season_over.js /tmp/patch_49_aip_drops_when_season_over.js
 RUN node /tmp/patch_49_aip_drops_when_season_over.js
 
+# --- patch_50: SONDA TEMPORAL — por que se recarga sola la pagina (parpadeo) ---
+COPY patch_50_boot_reason_probe.js /tmp/patch_50_boot_reason_probe.js
+RUN node /tmp/patch_50_boot_reason_probe.js
+
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
 # This bucket MUST run last among the patches because css_rename and bundle_rename
