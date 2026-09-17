@@ -20,6 +20,7 @@ A media tracker built for **completionists**, Spanish-first but localized to sev
 - **YouTube as a first-class media type**: subscribe to channels, mark videos watched, view the recent feed, persistent cache that survives YouTube's RSS outages.
 - **Theatre with serious metadata**: Wikidata SPARQL for canonical works + scraping of teatro.es (CDT/INAEM, Spain) for contemporary stagings.
 - **Audiobooks** and books with progress in hours/minutes or pages, with last-position tracking.
+- **External scores on the details page**: FilmAffinity rating for movies and TV shows, Metacritic Metascore for games, shown next to the IMDb/TMDB/IGDB logos and cached server-side.
 - **Duplicate detection** and merge tooling that doesn't lose seen / ratings / lists.
 - **Full backup / restore** including auto-restore on missing data.db, plus JSON and Letterboxd CSV exports.
 - **i18n**: 7 languages (es / en / pt / fr / de / da / ko) with a custom catalogue.
@@ -67,6 +68,8 @@ Open `http://localhost:7481` — the first user to register becomes admin.
 | `PUT` | `/api/episode-progress` | Per-episode progress |
 | `POST` | `/api/episodes/fetch-runtimes` | Refresh episode runtimes (TMDB) |
 | `GET` | `/api/hltb` | HowLongToBeat data for a game |
+| `GET` | `/api/filmaffinity` | FilmAffinity rating for a movie/TV item (`?mediaItemId=`) |
+| `GET` | `/api/metacritic` | Metacritic Metascore for a game (`?mediaItemId=`) |
 | `GET` `/PUT` | `/api/tmdb/key` | TMDB API key managed via UI (admin) |
 | `GET` `/POST` `/DELETE` | `/api/youtube/channels` | YouTube subscriptions |
 | `GET` | `/api/youtube/feed` | Recent videos (`?fresh=1` to bypass the cache) |

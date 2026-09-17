@@ -249,6 +249,14 @@ RUN node /tmp/patch_50_boot_reason_probe.js
 COPY patch_51_rate_star_without_release_date.js /tmp/patch_51_rate_star_without_release_date.js
 RUN node /tmp/patch_51_rate_star_without_release_date.js
 
+# --- patch_52: nota de FilmAffinity (logo + puntuacion) en la ficha de pelis y series ---
+COPY patch_52_filmaffinity_rating.js /tmp/patch_52_filmaffinity_rating.js
+RUN node /tmp/patch_52_filmaffinity_rating.js
+
+# --- patch_53: nota de Metacritic (logo + Metascore) en la ficha de los juegos ---
+COPY patch_53_metacritic_rating.js /tmp/patch_53_metacritic_rating.js
+RUN node /tmp/patch_53_metacritic_rating.js
+
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
 # This bucket MUST run last among the patches because css_rename and bundle_rename
