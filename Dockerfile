@@ -257,6 +257,11 @@ RUN node /tmp/patch_52_filmaffinity_rating.js
 COPY patch_53_metacritic_rating.js /tmp/patch_53_metacritic_rating.js
 RUN node /tmp/patch_53_metacritic_rating.js
 
+# --- patch_54: al cambiar el status en el refresco de metadatos, re-evaluar
+#     si la serie ya completada debe salir de la lista de seguimiento ---
+COPY patch_54_watchlist_recheck_on_metadata.js /tmp/patch_54_watchlist_recheck_on_metadata.js
+RUN node /tmp/patch_54_watchlist_recheck_on_metadata.js
+
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
 # This bucket MUST run last among the patches because css_rename and bundle_rename
