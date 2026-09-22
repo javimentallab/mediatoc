@@ -11,12 +11,17 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 # which is the only way to clear most of these without changing base image.
 RUN apk update && apk upgrade --no-cache --available && rm -rf /var/cache/apk/*
 
+# Layer budget: every patch runs as ONE layer via a read-only bind mount
+# (`RUN --mount=type=bind,source=patch_NN.js,target=/tmp/patch_NN.js node ...`).
+# Don't go back to COPY + RUN per patch: that's two layers each and at ~130
+# the build dies with "max depth exceeded" (overlayfs limit, hit in CI with
+# patch_55). The bind mount keeps per-patch cache invalidation.
+
 # Bucket 01 — pre-npm: bumps direct deps (axios, fast-xml-parser, form-data, lodash)
 # and adds overrides for path-to-regexp + tar-fs in /app/package.json. Must run
 # BEFORE `npm install` so the new ranges + overrides take effect on rebuild.
 SHELL ["/bin/sh", "-eo", "pipefail", "-c"]
-COPY patch_01_security_pre_npm.js /tmp/patch_01_security_pre_npm.js
-RUN node /tmp/patch_01_security_pre_npm.js
+RUN --mount=type=bind,source=patch_01_security_pre_npm.js,target=/tmp/patch_01_security_pre_npm.js node /tmp/patch_01_security_pre_npm.js
 
 # Upstream image ships only the node binary (no npm) so install npm via apk for
 # this layer, run install, then keep npm installed (~45MB) — `apk del npm` also
@@ -75,8 +80,7 @@ RUN cd /app && node -e " \
 # in-progress states; 10 finishes with CSS/bundle hash bumps + PWA.
 
 # Bucket 02 — backend foundation (SQL pragmas, items query fixes, in-progress filter)
-COPY patch_02_backend_db_items.js /tmp/patch_02_backend_db_items.js
-RUN node /tmp/patch_02_backend_db_items.js
+RUN --mount=type=bind,source=patch_02_backend_db_items.js,target=/tmp/patch_02_backend_db_items.js node /tmp/patch_02_backend_db_items.js
 
 # Inline: force DD/MM/YYYY date format in the bundle (one-shot sed, not a patch).
 # Sits between buckets 02 and 03 — order is irrelevant since no later patch
@@ -86,193 +90,142 @@ RUN BUNDLE=$(ls /app/public/main_*.js) && \
     echo "Frontend: date format DD/MM/YYYY OK"
 
 # Bucket 03 — downloaded + links + watch-providers + small features
-COPY patch_03_downloaded_links_wp.js /tmp/patch_03_downloaded_links_wp.js
-RUN node /tmp/patch_03_downloaded_links_wp.js
+RUN --mount=type=bind,source=patch_03_downloaded_links_wp.js,target=/tmp/patch_03_downloaded_links_wp.js node /tmp/patch_03_downloaded_links_wp.js
 
 # Bucket 04 — backup, audiobook, episodes, audio progress, UI tweaks
-COPY patch_04_backup_audiobook_episodes.js /tmp/patch_04_backup_audiobook_episodes.js
-RUN node /tmp/patch_04_backup_audiobook_episodes.js
+RUN --mount=type=bind,source=patch_04_backup_audiobook_episodes.js,target=/tmp/patch_04_backup_audiobook_episodes.js node /tmp/patch_04_backup_audiobook_episodes.js
 
 # Bucket 05 — fetch_runtimes, hltb, cleanup, perf indexes, seen_kind, items query optimizations
-COPY patch_05_perf_seen_items_opt.js /tmp/patch_05_perf_seen_items_opt.js
-RUN node /tmp/patch_05_perf_seen_items_opt.js
+RUN --mount=type=bind,source=patch_05_perf_seen_items_opt.js,target=/tmp/patch_05_perf_seen_items_opt.js node /tmp/patch_05_perf_seen_items_opt.js
 
 # Bucket 06 — navigation reshuffle, dupes, late perf, security middleware
-COPY patch_06_navigation_dupes_security.js /tmp/patch_06_navigation_dupes_security.js
-RUN node /tmp/patch_06_navigation_dupes_security.js
+RUN --mount=type=bind,source=patch_06_navigation_dupes_security.js,target=/tmp/patch_06_navigation_dupes_security.js node /tmp/patch_06_navigation_dupes_security.js
 
 # Bucket 07 — Jellyfin integration, endpoint security gates, YouTube + OAuth
-COPY patch_07_jellyfin_youtube_oauth.js /tmp/patch_07_jellyfin_youtube_oauth.js
-RUN node /tmp/patch_07_jellyfin_youtube_oauth.js
+RUN --mount=type=bind,source=patch_07_jellyfin_youtube_oauth.js,target=/tmp/patch_07_jellyfin_youtube_oauth.js node /tmp/patch_07_jellyfin_youtube_oauth.js
 
 # Bucket 08 — i18n custom keys, UI language switcher, Theater providers, homepage finals
-COPY patch_08_i18n_theater_homepage.js /tmp/patch_08_i18n_theater_homepage.js
-RUN node /tmp/patch_08_i18n_theater_homepage.js
+RUN --mount=type=bind,source=patch_08_i18n_theater_homepage.js,target=/tmp/patch_08_i18n_theater_homepage.js node /tmp/patch_08_i18n_theater_homepage.js
 
 # Bucket 09 — abandoned + actively-in-progress + theater detail-page + count fixes
-COPY patch_09_abandoned_inprogress_counts.js /tmp/patch_09_abandoned_inprogress_counts.js
-RUN node /tmp/patch_09_abandoned_inprogress_counts.js
+RUN --mount=type=bind,source=patch_09_abandoned_inprogress_counts.js,target=/tmp/patch_09_abandoned_inprogress_counts.js node /tmp/patch_09_abandoned_inprogress_counts.js
 
 # --- patch_11: serialize SQLite writes (pool.max=1) to kill BUSY storm on parallel TMDB inserts ---
-COPY patch_11_db_pool_serialize.js /tmp/patch_11_db_pool_serialize.js
-RUN node /tmp/patch_11_db_pool_serialize.js
+RUN --mount=type=bind,source=patch_11_db_pool_serialize.js,target=/tmp/patch_11_db_pool_serialize.js node /tmp/patch_11_db_pool_serialize.js
 
 # --- patch_12: in /in-progress, exclude non-tv items the user has already marked seen ---
-COPY patch_12_inprogress_aip_excludes_seen.js /tmp/patch_12_inprogress_aip_excludes_seen.js
-RUN node /tmp/patch_12_inprogress_aip_excludes_seen.js
+RUN --mount=type=bind,source=patch_12_inprogress_aip_excludes_seen.js,target=/tmp/patch_12_inprogress_aip_excludes_seen.js node /tmp/patch_12_inprogress_aip_excludes_seen.js
 
 # --- patch_13: on /api/progress?progress=1 (slider to 100%), also remove non-TV items from the watchlist ---
-COPY patch_13_progress_completion_watchlist.js /tmp/patch_13_progress_completion_watchlist.js
-RUN node /tmp/patch_13_progress_completion_watchlist.js
+RUN --mount=type=bind,source=patch_13_progress_completion_watchlist.js,target=/tmp/patch_13_progress_completion_watchlist.js node /tmp/patch_13_progress_completion_watchlist.js
 # --- patch_14: TV-only series-level "in progress" toggle button on detail page (right of sg) ---
-COPY patch_14_aip_series_button.js /tmp/patch_14_aip_series_button.js
-RUN node /tmp/patch_14_aip_series_button.js
+RUN --mount=type=bind,source=patch_14_aip_series_button.js,target=/tmp/patch_14_aip_series_button.js node /tmp/patch_14_aip_series_button.js
 # --- patch_17: details.inProgress computed flag + _AIPS button reflects it ---
-COPY patch_17_button_reflects_in_progress.js /tmp/patch_17_button_reflects_in_progress.js
-RUN node /tmp/patch_17_button_reflects_in_progress.js
+RUN --mount=type=bind,source=patch_17_button_reflects_in_progress.js,target=/tmp/patch_17_button_reflects_in_progress.js node /tmp/patch_17_button_reflects_in_progress.js
 # --- patch_18: engagement actions (Marcar en proceso / Add to watchlist) also unmark abandoned ---
-COPY patch_18_recovery_actions_unabandon.js /tmp/patch_18_recovery_actions_unabandon.js
-RUN node /tmp/patch_18_recovery_actions_unabandon.js
+RUN --mount=type=bind,source=patch_18_recovery_actions_unabandon.js,target=/tmp/patch_18_recovery_actions_unabandon.js node /tmp/patch_18_recovery_actions_unabandon.js
 # --- patch_19: flag-change event + _AB/_AIPS sync + Reanudar re-adds to watchlist ---
-COPY patch_19_flag_sync_event.js /tmp/patch_19_flag_sync_event.js
-RUN node /tmp/patch_19_flag_sync_event.js
+RUN --mount=type=bind,source=patch_19_flag_sync_event.js,target=/tmp/patch_19_flag_sync_event.js node /tmp/patch_19_flag_sync_event.js
 # --- patch_20: loosen AIP-manual gate + add inProgress computed flag + popup uses it ---
-COPY patch_20_loose_aip_inprogress.js /tmp/patch_20_loose_aip_inprogress.js
-RUN node /tmp/patch_20_loose_aip_inprogress.js
+RUN --mount=type=bind,source=patch_20_loose_aip_inprogress.js,target=/tmp/patch_20_loose_aip_inprogress.js node /tmp/patch_20_loose_aip_inprogress.js
 # --- patch_21: base filter includes abandoned items; _markCompleted also clears AIP ---
-COPY patch_21_abandoned_visibility_complete_clears_aip.js /tmp/patch_21_abandoned_visibility_complete_clears_aip.js
-RUN node /tmp/patch_21_abandoned_visibility_complete_clears_aip.js
+RUN --mount=type=bind,source=patch_21_abandoned_visibility_complete_clears_aip.js,target=/tmp/patch_21_abandoned_visibility_complete_clears_aip.js node /tmp/patch_21_abandoned_visibility_complete_clears_aip.js
 # --- patch_22: swap _AIPS button colors (action-based: red=remove, green=add) ---
-COPY patch_22_aips_swap_colors.js /tmp/patch_22_aips_swap_colors.js
-RUN node /tmp/patch_22_aips_swap_colors.js
+RUN --mount=type=bind,source=patch_22_aips_swap_colors.js,target=/tmp/patch_22_aips_swap_colors.js node /tmp/patch_22_aips_swap_colors.js
 # --- patch_23: _AIPS for all media types; drop modal AIP toggle ---
-COPY patch_23_universal_aips_drop_modal.js /tmp/patch_23_universal_aips_drop_modal.js
-RUN node /tmp/patch_23_universal_aips_drop_modal.js
+RUN --mount=type=bind,source=patch_23_universal_aips_drop_modal.js,target=/tmp/patch_23_universal_aips_drop_modal.js node /tmp/patch_23_universal_aips_drop_modal.js
 # --- patch_24: move _MAS next to _AIPS and match its outline style ---
-COPY patch_24_move_mas_next_to_aips.js /tmp/patch_24_move_mas_next_to_aips.js
-RUN node /tmp/patch_24_move_mas_next_to_aips.js
+RUN --mount=type=bind,source=patch_24_move_mas_next_to_aips.js,target=/tmp/patch_24_move_mas_next_to_aips.js node /tmp/patch_24_move_mas_next_to_aips.js
 # --- patch_25: _AIPS per-fetch invalidation + inProgress respects abandoned ---
-COPY patch_25_aips_per_call_invalidation.js /tmp/patch_25_aips_per_call_invalidation.js
-RUN node /tmp/patch_25_aips_per_call_invalidation.js
+RUN --mount=type=bind,source=patch_25_aips_per_call_invalidation.js,target=/tmp/patch_25_aips_per_call_invalidation.js node /tmp/patch_25_aips_per_call_invalidation.js
 # --- patch_26: items cache TTL 5min + progressive home render ---
-COPY patch_26_home_perf.js /tmp/patch_26_home_perf.js
-RUN node /tmp/patch_26_home_perf.js
+RUN --mount=type=bind,source=patch_26_home_perf.js,target=/tmp/patch_26_home_perf.js node /tmp/patch_26_home_perf.js
 # --- patch_27: TV seen flag requires status NOT Returning/InProduction/Planned ---
-COPY patch_27_tv_seen_requires_ended.js /tmp/patch_27_tv_seen_requires_ended.js
-RUN node /tmp/patch_27_tv_seen_requires_ended.js
+RUN --mount=type=bind,source=patch_27_tv_seen_requires_ended.js,target=/tmp/patch_27_tv_seen_requires_ended.js node /tmp/patch_27_tv_seen_requires_ended.js
 # --- patch_28: card progress bar ignores the audioProgress=1 completed-pass sentinel ---
-COPY patch_28_card_progress_sentinel.js /tmp/patch_28_card_progress_sentinel.js
-RUN node /tmp/patch_28_card_progress_sentinel.js
+RUN --mount=type=bind,source=patch_28_card_progress_sentinel.js,target=/tmp/patch_28_card_progress_sentinel.js node /tmp/patch_28_card_progress_sentinel.js
 # --- patch_29: list pages select audioProgress + first-unwatched-episode progress ---
-COPY patch_29_list_items_progress_columns.js /tmp/patch_29_list_items_progress_columns.js
-RUN node /tmp/patch_29_list_items_progress_columns.js
+RUN --mount=type=bind,source=patch_29_list_items_progress_columns.js,target=/tmp/patch_29_list_items_progress_columns.js node /tmp/patch_29_list_items_progress_columns.js
 # --- patch_30: sidebar "Marcar como completado" atomic (no dup seen, awaits cleanup, clears AIP) ---
-COPY patch_30_sidebar_complete_atomic.js /tmp/patch_30_sidebar_complete_atomic.js
-RUN node /tmp/patch_30_sidebar_complete_atomic.js
+RUN --mount=type=bind,source=patch_30_sidebar_complete_atomic.js,target=/tmp/patch_30_sidebar_complete_atomic.js node /tmp/patch_30_sidebar_complete_atomic.js
 # --- patch_31: items base filter accepts progress-only / AIP-only items ---
-COPY patch_31_items_basefilter_progress.js /tmp/patch_31_items_basefilter_progress.js
-RUN node /tmp/patch_31_items_basefilter_progress.js
+RUN --mount=type=bind,source=patch_31_items_basefilter_progress.js,target=/tmp/patch_31_items_basefilter_progress.js node /tmp/patch_31_items_basefilter_progress.js
 # --- patch_32: metadata throttle rotates oldest-first (fixes refresh starvation) ---
-COPY patch_32_metadata_rotate_oldest.js /tmp/patch_32_metadata_rotate_oldest.js
-RUN node /tmp/patch_32_metadata_rotate_oldest.js
+RUN --mount=type=bind,source=patch_32_metadata_rotate_oldest.js,target=/tmp/patch_32_metadata_rotate_oldest.js node /tmp/patch_32_metadata_rotate_oldest.js
 # --- patch_33: TV bulk mark-seen skips already-seen episodes (no dup passes) ---
-COPY patch_33_seen_tv_skip_already_seen.js /tmp/patch_33_seen_tv_skip_already_seen.js
-RUN node /tmp/patch_33_seen_tv_skip_already_seen.js
+RUN --mount=type=bind,source=patch_33_seen_tv_skip_already_seen.js,target=/tmp/patch_33_seen_tv_skip_already_seen.js node /tmp/patch_33_seen_tv_skip_already_seen.js
 # --- patch_34: expose numberOfPages in /api/items and /api/list/items (page totals match the ficha) ---
-COPY patch_34_pages_in_queries.js /tmp/patch_34_pages_in_queries.js
-RUN node /tmp/patch_34_pages_in_queries.js
+RUN --mount=type=bind,source=patch_34_pages_in_queries.js,target=/tmp/patch_34_pages_in_queries.js node /tmp/patch_34_pages_in_queries.js
 # --- patch_35: list query parity - downloaded flag, status case, seenWatched ---
-COPY patch_35_list_parity.js /tmp/patch_35_list_parity.js
-RUN node /tmp/patch_35_list_parity.js
+RUN --mount=type=bind,source=patch_35_list_parity.js,target=/tmp/patch_35_list_parity.js node /tmp/patch_35_list_parity.js
 
 # --- patch_36: PUT /api/seen removes finished TV shows from the watchlist ---
-COPY patch_36_tv_watchlist_on_seen.js /tmp/patch_36_tv_watchlist_on_seen.js
-RUN node /tmp/patch_36_tv_watchlist_on_seen.js
+RUN --mount=type=bind,source=patch_36_tv_watchlist_on_seen.js,target=/tmp/patch_36_tv_watchlist_on_seen.js node /tmp/patch_36_tv_watchlist_on_seen.js
 
 # --- patch_37: watchlist sections ordered by "recently added to the watchlist" ---
-COPY patch_37_watchlist_order_added.js /tmp/patch_37_watchlist_order_added.js
-RUN node /tmp/patch_37_watchlist_order_added.js
+RUN --mount=type=bind,source=patch_37_watchlist_order_added.js,target=/tmp/patch_37_watchlist_order_added.js node /tmp/patch_37_watchlist_order_added.js
 
 # --- patch_38: progress modal shows hours+minutes for movies/games (not bare minutes) ---
-COPY patch_38_progress_modal_hours_minutes.js /tmp/patch_38_progress_modal_hours_minutes.js
-RUN node /tmp/patch_38_progress_modal_hours_minutes.js
+RUN --mount=type=bind,source=patch_38_progress_modal_hours_minutes.js,target=/tmp/patch_38_progress_modal_hours_minutes.js node /tmp/patch_38_progress_modal_hours_minutes.js
 
 # --- patch_39: same hours+minutes progress for TV episodes (card + per-episode button) ---
-COPY patch_39_episode_progress_hours_minutes.js /tmp/patch_39_episode_progress_hours_minutes.js
-RUN node /tmp/patch_39_episode_progress_hours_minutes.js
+RUN --mount=type=bind,source=patch_39_episode_progress_hours_minutes.js,target=/tmp/patch_39_episode_progress_hours_minutes.js node /tmp/patch_39_episode_progress_hours_minutes.js
 
 # --- patch_40: progress written in one view shows up in the others (cache + list query) ---
-COPY patch_40_progress_sync_views.js /tmp/patch_40_progress_sync_views.js
-RUN node /tmp/patch_40_progress_sync_views.js
+RUN --mount=type=bind,source=patch_40_progress_sync_views.js,target=/tmp/patch_40_progress_sync_views.js node /tmp/patch_40_progress_sync_views.js
 
 # --- patch_41: /youtube "Marcar visto" ya no depende de que YouTube suelte la duracion ---
-COPY patch_41_youtube_watched_resilient.js /tmp/patch_41_youtube_watched_resilient.js
-RUN node /tmp/patch_41_youtube_watched_resilient.js
+RUN --mount=type=bind,source=patch_41_youtube_watched_resilient.js,target=/tmp/patch_41_youtube_watched_resilient.js node /tmp/patch_41_youtube_watched_resilient.js
 
 # --- patch_42: rediseno del acordeon de secciones (9 copias del mismo markup) ---
-COPY patch_42_section_accordion_redesign.js /tmp/patch_42_section_accordion_redesign.js
-RUN node /tmp/patch_42_section_accordion_redesign.js
+RUN --mount=type=bind,source=patch_42_section_accordion_redesign.js,target=/tmp/patch_42_section_accordion_redesign.js node /tmp/patch_42_section_accordion_redesign.js
 
 # --- patch_43: shell a ancho completo, alineado con el nav en cualquier resolucion ---
-COPY patch_43_shell_full_width.js /tmp/patch_43_shell_full_width.js
-RUN node /tmp/patch_43_shell_full_width.js
+RUN --mount=type=bind,source=patch_43_shell_full_width.js,target=/tmp/patch_43_shell_full_width.js node /tmp/patch_43_shell_full_width.js
 
 # --- patch_44: una serie en emision sigue en En proceso aunque estes al dia ---
-COPY patch_44_airing_tv_stays_in_progress.js /tmp/patch_44_airing_tv_stays_in_progress.js
-RUN node /tmp/patch_44_airing_tv_stays_in_progress.js
+RUN --mount=type=bind,source=patch_44_airing_tv_stays_in_progress.js,target=/tmp/patch_44_airing_tv_stays_in_progress.js node /tmp/patch_44_airing_tv_stays_in_progress.js
 
 # --- patch_45: barra principal homogeneizada con el resto (tokens de :root) ---
-COPY patch_45_nav_redesign.js /tmp/patch_45_nav_redesign.js
-RUN node /tmp/patch_45_nav_redesign.js
+RUN --mount=type=bind,source=patch_45_nav_redesign.js,target=/tmp/patch_45_nav_redesign.js node /tmp/patch_45_nav_redesign.js
 
 # --- patch_46: las secciones de En proceso arrancan abiertas ---
-COPY patch_46_inprogress_sections_open.js /tmp/patch_46_inprogress_sections_open.js
-RUN node /tmp/patch_46_inprogress_sections_open.js
+RUN --mount=type=bind,source=patch_46_inprogress_sections_open.js,target=/tmp/patch_46_inprogress_sections_open.js node /tmp/patch_46_inprogress_sections_open.js
 
 # --- patch_47: la portada (Inicio) centrada, resumen y secciones ---
-COPY patch_47_home_centered.js /tmp/patch_47_home_centered.js
-RUN node /tmp/patch_47_home_centered.js
+RUN --mount=type=bind,source=patch_47_home_centered.js,target=/tmp/patch_47_home_centered.js node /tmp/patch_47_home_centered.js
 
 # --- patch_48: sin refetch espontaneo al recuperar foco o red (el parpadeo) ---
-COPY patch_48_no_refetch_on_focus.js /tmp/patch_48_no_refetch_on_focus.js
-RUN node /tmp/patch_48_no_refetch_on_focus.js
+RUN --mount=type=bind,source=patch_48_no_refetch_on_focus.js,target=/tmp/patch_48_no_refetch_on_focus.js node /tmp/patch_48_no_refetch_on_focus.js
 
 # --- patch_49: al acabar la temporada, la serie sale sola de En proceso ---
-COPY patch_49_aip_drops_when_season_over.js /tmp/patch_49_aip_drops_when_season_over.js
-RUN node /tmp/patch_49_aip_drops_when_season_over.js
+RUN --mount=type=bind,source=patch_49_aip_drops_when_season_over.js,target=/tmp/patch_49_aip_drops_when_season_over.js node /tmp/patch_49_aip_drops_when_season_over.js
 
 # --- patch_50: SONDA TEMPORAL — por que se recarga sola la pagina (parpadeo) ---
-COPY patch_50_boot_reason_probe.js /tmp/patch_50_boot_reason_probe.js
-RUN node /tmp/patch_50_boot_reason_probe.js
+RUN --mount=type=bind,source=patch_50_boot_reason_probe.js,target=/tmp/patch_50_boot_reason_probe.js node /tmp/patch_50_boot_reason_probe.js
 
 # --- patch_51: la estrella de puntuar tambien en items sin fecha de estreno ---
-COPY patch_51_rate_star_without_release_date.js /tmp/patch_51_rate_star_without_release_date.js
-RUN node /tmp/patch_51_rate_star_without_release_date.js
+RUN --mount=type=bind,source=patch_51_rate_star_without_release_date.js,target=/tmp/patch_51_rate_star_without_release_date.js node /tmp/patch_51_rate_star_without_release_date.js
 
 # --- patch_52: nota de FilmAffinity (logo + puntuacion) en la ficha de pelis y series ---
-COPY patch_52_filmaffinity_rating.js /tmp/patch_52_filmaffinity_rating.js
-RUN node /tmp/patch_52_filmaffinity_rating.js
+RUN --mount=type=bind,source=patch_52_filmaffinity_rating.js,target=/tmp/patch_52_filmaffinity_rating.js node /tmp/patch_52_filmaffinity_rating.js
 
 # --- patch_53: nota de Metacritic (logo + Metascore) en la ficha de los juegos ---
-COPY patch_53_metacritic_rating.js /tmp/patch_53_metacritic_rating.js
-RUN node /tmp/patch_53_metacritic_rating.js
+RUN --mount=type=bind,source=patch_53_metacritic_rating.js,target=/tmp/patch_53_metacritic_rating.js node /tmp/patch_53_metacritic_rating.js
 
 # --- patch_54: al cambiar el status en el refresco de metadatos, re-evaluar
 #     si la serie ya completada debe salir de la lista de seguimiento ---
-COPY patch_54_watchlist_recheck_on_metadata.js /tmp/patch_54_watchlist_recheck_on_metadata.js
-RUN node /tmp/patch_54_watchlist_recheck_on_metadata.js
+RUN --mount=type=bind,source=patch_54_watchlist_recheck_on_metadata.js,target=/tmp/patch_54_watchlist_recheck_on_metadata.js node /tmp/patch_54_watchlist_recheck_on_metadata.js
 
 # --- patch_55: la estrella de puntuar sale aunque la fecha de estreno sea futura
 #     (ficha, caratula, episodio y temporada) ---
-COPY patch_55_rate_ignore_release_date.js /tmp/patch_55_rate_ignore_release_date.js
-RUN node /tmp/patch_55_rate_ignore_release_date.js
+RUN --mount=type=bind,source=patch_55_rate_ignore_release_date.js,target=/tmp/patch_55_rate_ignore_release_date.js node /tmp/patch_55_rate_ignore_release_date.js
 
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
 # This bucket MUST run last among the patches because css_rename and bundle_rename
 # bump content hashes — any later modification would orphan the new hash.
-COPY patch_10_visual_tokens_bundle.js /tmp/patch_10_visual_tokens_bundle.js
-RUN node /tmp/patch_10_visual_tokens_bundle.js
+RUN --mount=type=bind,source=patch_10_visual_tokens_bundle.js,target=/tmp/patch_10_visual_tokens_bundle.js node /tmp/patch_10_visual_tokens_bundle.js
 
 # --- Regenerate compressed bundle (.br and .gz) ---
 # The server serves pre-compressed versions when the browser supports them; if we
