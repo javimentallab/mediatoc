@@ -262,6 +262,11 @@ RUN node /tmp/patch_53_metacritic_rating.js
 COPY patch_54_watchlist_recheck_on_metadata.js /tmp/patch_54_watchlist_recheck_on_metadata.js
 RUN node /tmp/patch_54_watchlist_recheck_on_metadata.js
 
+# --- patch_55: la estrella de puntuar sale aunque la fecha de estreno sea futura
+#     (ficha, caratula, episodio y temporada) ---
+COPY patch_55_rate_ignore_release_date.js /tmp/patch_55_rate_ignore_release_date.js
+RUN node /tmp/patch_55_rate_ignore_release_date.js
+
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
 # This bucket MUST run last among the patches because css_rename and bundle_rename
