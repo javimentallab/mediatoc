@@ -25,7 +25,10 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build mediatoc image (load locally only — no push)
+        # pipefail: without it `| tail` masks a failed build and the error
+        # only surfaces later as Trivy's "unable to find the specified image".
         run: |
+          set -o pipefail
           docker build \
             --tag mediatoc:ci \
             --progress=plain \
