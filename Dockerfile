@@ -234,3 +234,7 @@ RUN --mount=type=bind,source=patch_10_visual_tokens_bundle.js,target=/tmp/patch_
 # (Cloudflare always does).
 RUN BUNDLE=$(ls /app/public/main_*.js | grep -v '\.LICENSE\|\.map') && \
     node -e "const fs=require('fs'),zlib=require('zlib');const p='$BUNDLE';const d=fs.readFileSync(p);fs.writeFileSync(p+'.gz',zlib.gzipSync(d,{level:9}));fs.writeFileSync(p+'.br',zlib.brotliCompressSync(d));console.log('Recompressed bundle:',p);"
+
+# --- patch_56: ver un capítulo antes de su estreno oficial no saca la serie
+#     de En proceso (AHS 13x1 visto el 26-sep, estreno TMDB 1-oct)
+RUN --mount=type=bind,source=patch_56_seen_ahead_of_air_stays_in_progress.js,target=/tmp/patch_56_seen_ahead_of_air_stays_in_progress.js node /tmp/patch_56_seen_ahead_of_air_stays_in_progress.js
