@@ -227,6 +227,11 @@ RUN --mount=type=bind,source=patch_55_rate_ignore_release_date.js,target=/tmp/pa
 # bump content hashes — any later modification would orphan the new hash.
 RUN --mount=type=bind,source=patch_10_visual_tokens_bundle.js,target=/tmp/patch_10_visual_tokens_bundle.js node /tmp/patch_10_visual_tokens_bundle.js
 
+# --- patch_57: siguiente capitulo aunque no se haya emitido (AHS 13x2) y barra de
+#     progreso en lo fijado en En proceso aunque ya este completado (Stalker 2).
+#     Toca el bundle: tiene que ir ANTES de la recompresion.
+RUN --mount=type=bind,source=patch_57_ahead_episode_and_replay_bar.js,target=/tmp/patch_57_ahead_episode_and_replay_bar.js node /tmp/patch_57_ahead_episode_and_replay_bar.js
+
 # --- Regenerate compressed bundle (.br and .gz) ---
 # The server serves pre-compressed versions when the browser supports them; if we
 # leave the originals (which were the upstream bundle), all our frontend patches
