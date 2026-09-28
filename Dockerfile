@@ -234,6 +234,9 @@ RUN --mount=type=bind,source=patch_57_ahead_episode_and_replay_bar.js,target=/tm
 # --- patch_58: el capitulo sin emitir de patch_57 solo si el ultimo visto tampoco
 #     se ha emitido (antes salia en toda serie al dia: Dark Matter, MobLand...)
 RUN --mount=type=bind,source=patch_58_ahead_episode_only_if_watched_ahead.js,target=/tmp/patch_58_ahead_episode_only_if_watched_ahead.js node /tmp/patch_58_ahead_episode_only_if_watched_ahead.js
+# --- patch_59: preferencia "Pagina de inicio" (Inicio / En proceso), por dispositivo.
+#     Toca el bundle: tiene que ir ANTES de la recompresion.
+RUN --mount=type=bind,source=patch_59_start_page_preference.js,target=/tmp/patch_59_start_page_preference.js node /tmp/patch_59_start_page_preference.js
 
 # --- Regenerate compressed bundle (.br and .gz) ---
 # The server serves pre-compressed versions when the browser supports them; if we
