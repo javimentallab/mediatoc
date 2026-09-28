@@ -231,6 +231,7 @@ RUN --mount=type=bind,source=patch_10_visual_tokens_bundle.js,target=/tmp/patch_
 #     progreso en lo fijado en En proceso aunque ya este completado (Stalker 2).
 #     Toca el bundle: tiene que ir ANTES de la recompresion.
 RUN --mount=type=bind,source=patch_57_ahead_episode_and_replay_bar.js,target=/tmp/patch_57_ahead_episode_and_replay_bar.js node /tmp/patch_57_ahead_episode_and_replay_bar.js
+# --- patch_58: el capitulo sin emitir de patch_57 solo si el ultimo visto tampoco#     se ha emitido (antes salia en toda serie al dia: Dark Matter, MobLand...)RUN --mount=type=bind,source=patch_58_ahead_episode_only_if_watched_ahead.js,target=/tmp/patch_58_ahead_episode_only_if_watched_ahead.js node /tmp/patch_58_ahead_episode_only_if_watched_ahead.js
 
 # --- Regenerate compressed bundle (.br and .gz) ---
 # The server serves pre-compressed versions when the browser supports them; if we
