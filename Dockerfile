@@ -221,12 +221,6 @@ RUN --mount=type=bind,source=patch_54_watchlist_recheck_on_metadata.js,target=/t
 #     (ficha, caratula, episodio y temporada) ---
 RUN --mount=type=bind,source=patch_55_rate_ignore_release_date.js,target=/tmp/patch_55_rate_ignore_release_date.js node /tmp/patch_55_rate_ignore_release_date.js
 
-# Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
-# import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
-# This bucket MUST run last among the patches because css_rename and bundle_rename
-# bump content hashes — any later modification would orphan the new hash.
-RUN --mount=type=bind,source=patch_10_visual_tokens_bundle.js,target=/tmp/patch_10_visual_tokens_bundle.js node /tmp/patch_10_visual_tokens_bundle.js
-
 # --- patch_57: siguiente capitulo aunque no se haya emitido (AHS 13x2) y barra de
 #     progreso en lo fijado en En proceso aunque ya este completado (Stalker 2).
 #     Toca el bundle: tiene que ir ANTES de la recompresion.
@@ -237,6 +231,12 @@ RUN --mount=type=bind,source=patch_58_ahead_episode_only_if_watched_ahead.js,tar
 # --- patch_59: preferencia "Pagina de inicio" (Inicio / En proceso), por dispositivo.
 #     Toca el bundle: tiene que ir ANTES de la recompresion.
 RUN --mount=type=bind,source=patch_59_start_page_preference.js,target=/tmp/patch_59_start_page_preference.js node /tmp/patch_59_start_page_preference.js
+
+# Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
+# import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
+# This bucket MUST run last among the patches because css_rename and bundle_rename
+# bump content hashes — any later modification would orphan the new hash.
+RUN --mount=type=bind,source=patch_10_visual_tokens_bundle.js,target=/tmp/patch_10_visual_tokens_bundle.js node /tmp/patch_10_visual_tokens_bundle.js
 
 # --- Regenerate compressed bundle (.br and .gz) ---
 # The server serves pre-compressed versions when the browser supports them; if we
