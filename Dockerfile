@@ -231,6 +231,9 @@ RUN --mount=type=bind,source=patch_58_ahead_episode_only_if_watched_ahead.js,tar
 # --- patch_59: preferencia "Pagina de inicio" (Inicio / En proceso), por dispositivo.
 #     Toca el bundle: tiene que ir ANTES de la recompresion.
 RUN --mount=type=bind,source=patch_59_start_page_preference.js,target=/tmp/patch_59_start_page_preference.js node /tmp/patch_59_start_page_preference.js
+# --- patch_60: con "Pagina de inicio" = En proceso, la ruta "/" lleva ahi siempre
+#     (tambien tras el login) e Inicio pasa a /inicio. ANTES de patch_10.
+RUN --mount=type=bind,source=patch_60_start_page_route.js,target=/tmp/patch_60_start_page_route.js node /tmp/patch_60_start_page_route.js
 
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
