@@ -234,6 +234,8 @@ RUN --mount=type=bind,source=patch_59_start_page_preference.js,target=/tmp/patch
 # --- patch_60: con "Pagina de inicio" = En proceso, la ruta "/" lleva ahi siempre
 #     (tambien tras el login) e Inicio pasa a /inicio. ANTES de patch_10.
 RUN --mount=type=bind,source=patch_60_start_page_route.js,target=/tmp/patch_60_start_page_route.js node /tmp/patch_60_start_page_route.js
+# --- patch_61: fallback SPA, las rutas del frontend (/in-progress...) sirven index.html al recargar
+RUN --mount=type=bind,source=patch_61_spa_fallback.js,target=/tmp/patch_61_spa_fallback.js node /tmp/patch_61_spa_fallback.js
 
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
