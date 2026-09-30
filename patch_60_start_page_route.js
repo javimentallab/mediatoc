@@ -32,6 +32,11 @@ s = '/* ' + MARKER + ' */window._mtStartIP=function(){try{return localStorage.ge
 once('{path:"/",name:xo._("Home")}',
      '{path:(window._mtStartIP()?"/inicio":"/"),name:xo._("Home")}', 'menu');
 
+// La barra de titulo solo pinta las rutas de una lista blanca: sin /inicio ahi,
+// Inicio desaparecia del menu (30-sep-2026).
+once('["/","/tv","/movies","/games","/books","/theater","/youtube"].indexOf(e.path)',
+     '["/","/inicio","/tv","/movies","/games","/books","/theater","/youtube"].indexOf(e.path)', 'nav whitelist');
+
 // Rutas: "/" decide al renderizar; /inicio = Inicio de siempre
 once('r.createElement(Q,{path:"/",element:r.createElement(Xv,null)})',
      'r.createElement(Q,{path:"/",element:r.createElement(function(){return window._mtStartIP()?r.createElement(Y,{to:"/in-progress",replace:!0}):r.createElement(Xv,null)})}),'
