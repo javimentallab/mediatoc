@@ -46,7 +46,7 @@ RUN cd /tmp && \
     node -p "'path-to-regexp (express nested) → ' + require('/app/node_modules/express/node_modules/path-to-regexp/package.json').version"
 
 # Sanity: print resolved versions for the bumped packages so build logs document the fix.
-RUN cd /app && for p in axios fast-xml-parser form-data lodash ajv nanoid sharp; do \
+RUN cd /app && for p in axios fast-xml-parser form-data lodash ajv nanoid sharp proxy-addr; do \
       echo "$p: $(node -p "require('$p/package.json').version")"; \
     done
 
