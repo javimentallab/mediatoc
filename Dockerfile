@@ -1,4 +1,28 @@
-FROM bonukai/mediatracker:latest@sha256:4397847ec1a88a83e29a9c19c31261af47de730047adc7dbe4bbcbb34ca27df1
+# Upstream image = plain Alpine 3.20 + a node binary copied from node:20-alpine.
+# Both are EOL (Node 20 missed the Oct-2026 security release: Brotli RCE
+# CVE-2026-111497, TLS hostname bypasses, eMudhra CA distrust), so take only
+# the app from it and rebuild the same layout on a supported Node/Alpine base.
+FROM bonukai/mediatracker:latest@sha256:4397847ec1a88a83e29a9c19c31261af47de730047adc7dbe4bbcbb34ca27df1 AS upstream
+
+FROM node:22.23.4-alpine3.23@sha256:206878a60dc7014193f418ab9259b6110c15fbd514b3044a267be706509944e4
+
+# Same runtime packages and abc user (uid/gid 1000, remapped by PUID/PGID in
+# entrypoint.sh) as the upstream image. --non-unique: node:alpine already has
+# the `node` user on 1000.
+RUN apk add --no-cache curl shadow expat glib libwebp jpeg fftw orc libpng tiff lcms2 && \
+    groupadd --non-unique --gid 1000 abc && \
+    useradd --non-unique --create-home --uid 1000 --gid abc abc
+
+ENV PORT=7481 PUID=1000 PGID=1000 \
+    DATABASE_PATH=/storage/data.db ASSETS_PATH=/assets LOGS_PATH=/logs \
+    NODE_ENV=production
+COPY --from=upstream /libvips /libvips
+COPY --from=upstream /docker /docker
+COPY --from=upstream /app /app
+VOLUME ["/storage", "/assets", "/logs"]
+WORKDIR /app
+EXPOSE 7481
+ENTRYPOINT ["sh", "/docker/entrypoint.sh"]
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD wget -q -O /dev/null "http://$(hostname):7481/api/configuration" || exit 1
@@ -23,14 +47,17 @@ RUN apk update && apk upgrade --no-cache --available && rm -rf /var/cache/apk/*
 SHELL ["/bin/sh", "-eo", "pipefail", "-c"]
 RUN --mount=type=bind,source=patch_01_security_pre_npm.js,target=/tmp/patch_01_security_pre_npm.js node /tmp/patch_01_security_pre_npm.js
 
-# Upstream image ships only the node binary (no npm) so install npm via apk for
-# this layer, run install, then keep npm installed (~45MB) — `apk del npm` also
-# removes its nodejs dep, which clobbers /usr/local/bin/node and breaks every
-# later `RUN node /tmp/patch_*.js` step. Acceptable trade-off.
-RUN apk add --no-cache npm && \
-    cd /app && rm -f package-lock.json && \
+# npm comes with the node base image (no more apk npm, which pulled in a second,
+# EOL nodejs-current 21 at /usr/bin/node). better-sqlite3 in upstream's
+# node_modules was compiled for Node 20's ABI and `npm install` keeps it, so
+# rebuild it for this Node: prebuild-install fetches the musl prebuilt, the
+# temporary toolchain is only the fallback if that download fails.
+RUN cd /app && rm -f package-lock.json && \
     npm install --legacy-peer-deps --no-audit --no-fund 2>&1 | tail -25 && \
-    rm -rf /root/.npm /var/cache/apk/*
+    apk add --no-cache --virtual .build-deps python3 make g++ && \
+    npm rebuild better-sqlite3 2>&1 | tail -5 && \
+    apk del .build-deps && \
+    rm -rf /root/.npm /root/.cache /var/cache/apk/*
 
 # Force express's nested path-to-regexp to 0.1.13 — npm overrides + nested
 # install both failed in this image. Workaround: download the 0.1.13 tarball
@@ -66,7 +93,10 @@ RUN cd /app && node -e " \
         if (typeof n[f] !== 'function') throw new Error('nanoid: missing export ' + f); \
       } \
       if (typeof n.urlAlphabet !== 'string') throw new Error('nanoid: missing urlAlphabet'); \
-      console.log('smoke: sharp ' + sharp.versions.sharp + ' / libvips ' + sharp.versions.vips + ' + nanoid CJS OK'); \
+      const db = new (require('better-sqlite3'))(':memory:'); \
+      if (db.prepare('select 1 as x').get().x !== 1) throw new Error('better-sqlite3: bad query result'); \
+      if (typeof require('argon2').hash !== 'function') throw new Error('argon2: missing hash'); \
+      console.log('smoke: node ' + process.version + ' / sharp ' + sharp.versions.sharp + ' / libvips ' + sharp.versions.vips + ' + better-sqlite3 + argon2 + nanoid CJS OK'); \
     "
 
 # --- Mega-patches 02 → 10 (consolidated from ~184 individual patch_*.js scripts) ---
