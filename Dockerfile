@@ -52,11 +52,16 @@ RUN --mount=type=bind,source=patch_01_security_pre_npm.js,target=/tmp/patch_01_s
 # node_modules was compiled for Node 20's ABI and `npm install` keeps it, so
 # rebuild it for this Node: prebuild-install fetches the musl prebuilt, the
 # temporary toolchain is only the fallback if that download fails.
+# npm/npx/corepack are deleted in this same layer: nothing after it (patches
+# or the app) runs them, and the copy bundled in the node image carries its
+# own HIGH CVEs (brace-expansion, sigstore, pacote...) that fail trivy-scan.
 RUN cd /app && rm -f package-lock.json && \
     npm install --legacy-peer-deps --no-audit --no-fund 2>&1 | tail -25 && \
     apk add --no-cache --virtual .build-deps python3 make g++ && \
     npm rebuild better-sqlite3 2>&1 | tail -5 && \
     apk del .build-deps && \
+    rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+           /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack && \
     rm -rf /root/.npm /root/.cache /var/cache/apk/*
 
 # Force express's nested path-to-regexp to 0.1.13 — npm overrides + nested
