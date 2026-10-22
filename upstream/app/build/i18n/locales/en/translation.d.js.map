@@ -1,0 +1,1 @@
+{"version":3,"file":"translation.d.js","names":[],"sources":["../../../../src/i18n/locales/en/translation.d.ts"],"sourcesContent":["import { Messages } from '@lingui/core';\n          declare const messages: Messages;\n          export { messages };\n          "],"mappings":"","ignoreList":[]}

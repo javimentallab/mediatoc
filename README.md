@@ -120,7 +120,8 @@ CSS / JS edits regenerate the brotli + gzip pre-compressed variants so the stati
 
 ```
 .
-├── Dockerfile                       # FROM bonukai/mediatracker:<sha256> + COPY/RUN per patch
+├── Dockerfile                       # FROM node:<version>-alpine + upstream/ + one RUN per patch
+├── upstream/                        # unmodified MediaTracker 0.2.11 app + our package-lock (see upstream/README.md)
 ├── docker-compose.example.yml       # service definition stub — copy to docker-compose.yml
 ├── patch_01_security_pre_npm.js     # runs BEFORE npm install: package.json + overrides
 ├── patch_02..10_*.js                # mega-patches grouped by domain

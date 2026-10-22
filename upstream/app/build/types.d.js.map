@@ -1,0 +1,1 @@
+{"version":3,"file":"types.d.js","names":[],"sources":["../src/types.d.ts"],"sourcesContent":["declare module '*.xml' {\n  const doc: string;\n  export default doc;\n}\n"],"mappings":"","ignoreList":[]}

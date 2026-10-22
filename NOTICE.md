@@ -2,9 +2,10 @@
 
 MediaTOC is a personal media tracker built **on top of**
 [**bonukai/MediaTracker**](https://github.com/bonukai/MediaTracker), licensed
-under the MIT License. The base Docker image (`bonukai/mediatracker:latest`)
-is consumed verbatim and patched at build time — no upstream source files are
-redistributed in this repository.
+under the MIT License. The compiled upstream app (`/app/build`, `/app/public`,
+`package.json` and `entrypoint.sh` of the last `bonukai/mediatracker` image,
+0.2.11) is redistributed unmodified under `upstream/` and patched at build
+time; see `upstream/README.md`.
 
 ## Acknowledgements
 

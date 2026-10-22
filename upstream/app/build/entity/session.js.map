@@ -1,0 +1,1 @@
+{"version":3,"file":"session.js","names":["sessionColumns","exports"],"sources":["../../src/entity/session.ts"],"sourcesContent":["export type Session = {\n  sid: string;\n  session: string;\n};\n\nexport const sessionColumns = <const>['sid', 'session'];\n"],"mappings":";;;;;;AAKO,MAAMA,cAAc,GAAAC,OAAA,CAAAD,cAAA,GAAU,CAAC,KAAK,EAAE,SAAS,CAAC","ignoreList":[]}

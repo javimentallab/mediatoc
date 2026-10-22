@@ -1,0 +1,1 @@
+{"version":3,"file":"accessToken.js","names":[],"sources":["../../src/entity/accessToken.ts"],"sourcesContent":["export type AccessToken = {\n  id: number;\n  userId: number;\n  token: string;\n  description: string;\n};\n"],"mappings":"","ignoreList":[]}
