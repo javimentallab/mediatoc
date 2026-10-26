@@ -18,6 +18,7 @@
 //   - nanoid           3.3.8  → 3.3.18   (CVE-2026-67213, CVE-2026-67214, CVE-2026-73086) — HIGH DoS + predictable IDs
 //   - sharp            0.33.5 → 0.35.0   (GHSA-f88m-g3jw-g9cj: CVE-2026-33327/33328/35590/35591) — HIGH inherited libvips
 //   - proxy-addr       2.0.7  → 2.0.8    (CVE-2026-90711) — CRITICAL IP spoofing (transitive via express)
+//   - body-parser      1.20.3 → 1.20.9   (CVE-2026-111181) — HIGH DoS (transitive via express)
 //
 // Strategy:
 //   - Direct deps: bump in `dependencies` so `npm install` picks them up.
@@ -85,6 +86,7 @@ pkg.overrides['fast-uri'] = '^3.1.2';
 pkg.overrides['@babel/runtime'] = '^7.29.2';
 pkg.overrides['on-headers'] = '^1.1.0'; // HTTP header manipulation (low) via express-session
 pkg.overrides['proxy-addr'] = '^2.0.8'; // CVE-2026-90711 CRITICAL, IP spoofing (express trust proxy / req.ip)
+pkg.overrides['body-parser'] = '^1.20.9'; // CVE-2026-111181 HIGH, DoS (express 4.21.2 pins 1.20.3)
 // NOTE: ajv is in `dependencies` above — npm rejects overrides on direct deps.
 // Explicit nested override for express → path-to-regexp because the global
 // rule alone didn't propagate into express's bundled node_modules in our setup.
