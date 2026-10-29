@@ -167,7 +167,7 @@ async function down(knex) {
     '};' +
     'return r.createElement("div",{"data-mt-chapters":"1",className:"flex items-center",style:{gap:"0.4rem"}},' +
     'r.createElement("span",{className:"font-bold"},"Cap\\u00edtulos",":"," "),' +
-    'r.createElement("input",{key:"mtch"+_eff,id:"mtch_"+a.id,type:"number",min:1,defaultValue:_eff,className:"border rounded px-1",style:{width:"4.5rem",color:"#000"}}),' +
+    'r.createElement("input",{key:"mtch"+_eff,id:"mtch_"+a.id,type:"number",min:1,defaultValue:_eff,style:{width:"4.8rem",color:"#111",backgroundColor:"#fff",border:"1px solid #999",borderRadius:"4px",padding:"1px 4px"}}),' +
     'r.createElement("button",{className:"border rounded px-2 py-0.5 text-sm",onClick:_save},"Guardar"),' +
     '(_nc?null:r.createElement("span",{className:"text-xs",style:{opacity:0.6}},"(estim.)")))' +
     '})()';
