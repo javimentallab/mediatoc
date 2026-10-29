@@ -276,6 +276,9 @@ RUN --mount=type=bind,source=patch_61_spa_fallback.js,target=/tmp/patch_61_spa_f
 # --- patch_62: indicador de capitulos (computado) encima de barras leido/escuchado
 RUN --mount=type=bind,source=patch_62_chapter_indicator.js,target=/tmp/patch_62_chapter_indicator.js node /tmp/patch_62_chapter_indicator.js
 
+# --- patch_63: "Numero de capitulos" en la ficha (Audible real + estimado en libros). ANTES de patch_10.
+RUN --mount=type=bind,source=patch_63_chapters_metadata.js,target=/tmp/patch_63_chapters_metadata.js node /tmp/patch_63_chapters_metadata.js
+
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
 # This bucket MUST run last among the patches because css_rename and bundle_rename
