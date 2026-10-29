@@ -28,7 +28,7 @@ const MIN_PER_CHAPTER = 30;
 // indicator element: `div` is the N expression (maxP/.. or maxD/..) as a string
 function ind(div) {
   return '/*RP_CHAPIND_V2*/r.createElement("div",{className:"text-sm",style:{marginTop:"0.6rem",opacity:0.85}},' +
-    '(function(){var N=Math.max(1,Math.round((' + div + ')));' +
+    '(function(){var N=Math.max(1,(Number(t.numberOfChapters)>0?Math.round(Number(t.numberOfChapters)):Math.round((' + div + '))));' +
     'return "Capítulo "+(i<=0?0:Math.min(N,Math.ceil(i/100*N)))+" de "+N})())';
 }
 
