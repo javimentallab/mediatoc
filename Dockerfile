@@ -279,6 +279,9 @@ RUN --mount=type=bind,source=patch_63_chapters_metadata.js,target=/tmp/patch_63_
 # --- patch_64: En proceso pinta al abrir su ultima respuesta (sin saltos de las secciones). ANTES de patch_10.
 RUN --mount=type=bind,source=patch_64_inprogress_instant_paint.js,target=/tmp/patch_64_inprogress_instant_paint.js node /tmp/patch_64_inprogress_instant_paint.js
 
+# --- patch_65: secciones con identidad estable (no remontar caratulas al re-renderizar la pagina). ANTES de patch_10.
+RUN --mount=type=bind,source=patch_65_stable_section_components.js,target=/tmp/patch_65_stable_section_components.js node /tmp/patch_65_stable_section_components.js
+
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
 # This bucket MUST run last among the patches because css_rename and bundle_rename

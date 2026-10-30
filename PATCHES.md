@@ -1,6 +1,6 @@
 # Patches inventory
 
-10 mega-patches (`patch_01`–`patch_10`) plus 51 standalone patches (`patch_11`–`patch_64`),
+10 mega-patches (`patch_01`–`patch_10`) plus 52 standalone patches (`patch_11`–`patch_65`),
 applied in order by the `Dockerfile`. Each mega-patch is the literal
 concatenation of its constituent scripts (originally 184 individual `patch_*.js`
 files, consolidated for readability); everything written after the
@@ -46,10 +46,10 @@ a different minifier output, several anchors can break and have to be updated.
 
 Total: **184 constituents** across 10 mega-patches.
 
-## Standalone patches (11–64)
+## Standalone patches (11–65)
 
 Execution order in the `Dockerfile`: `01` → `npm install` → `02`…`09` →
-`11`…`49`, `51`…`55`, `57`…`64` → **`10`** → bundle recompression → `56`.
+`11`…`49`, `51`…`55`, `57`…`65` → **`10`** → bundle recompression → `56`.
 Anything that touches the SPA bundle must run **before `patch_10`** (its rename
 steps bump the content hashes). `patch_56` only touches the backend
 (`knex/queries/items.js`), so it can run after. There is no `patch_15` / `patch_16`; `patch_50` was a temporary diagnostic probe, removed on 2026-10-30.
@@ -107,6 +107,7 @@ steps bump the content hashes). `patch_56` only touches the backend
 | 62 | `patch_62_chapter_indicator.js` | Chapter indicator on top of the read / listen progress bars. |
 | 63 | `patch_63_chapters_metadata.js` | Editable "number of chapters" on book / audiobook details (real count from Audible), wired to the progress modal. |
 | 64 | `patch_64_inprogress_instant_paint.js` | *In progress* paints its last response on open (localStorage placeholder) and refreshes silently: no sections jumping while they load. |
+| 65 | `patch_65_stable_section_components.js` | Section components of the sectioned pages (In progress, Watchlist, Abandoned, Downloaded…) keep a stable identity, so a page re-render (e.g. react-query staleTime at 30 s) no longer remounts every card. |
 
 ## Maintenance
 
