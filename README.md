@@ -16,10 +16,12 @@ Self-hosted tracker for everything you watch, read, play, listen to and attend �
 A media tracker built for **completionists**, Spanish-first but localized to seven languages:
 
 - **Per-medium consumption verbs**, not just "seen": played / watched / read / listened / attended. The same item can have several.
+- **"In progress" page that keeps itself tidy**: everything you are watching, reading, playing or listening to, for every media type. Airing shows stay while you are up to date, the card shows the next episode (even one you watched ahead of its air date) and a show leaves by itself when its season or series ends. Abandoned items have their own list. You can make it your start page.
+- **Progress in real units**: hours and minutes for movies, games, theatre and episodes; pages for books; position for audiobooks, with a chapter indicator over the read / listen bars.
 - **Two-way Jellyfin integration**: marks items as downloaded when they appear in your Jellyfin library, opens "Play in Jellyfin" deeplinks, sync-back when you watch something there.
 - **YouTube as a first-class media type**: subscribe to channels, mark videos watched, view the recent feed, persistent cache that survives YouTube's RSS outages.
 - **Theatre with serious metadata**: Wikidata SPARQL for canonical works + scraping of teatro.es (CDT/INAEM, Spain) for contemporary stagings.
-- **Audiobooks** and books with progress in hours/minutes or pages, with last-position tracking.
+- **Watchlist ordered by date added**; finished shows leave it automatically.
 - **External scores on the details page**: FilmAffinity rating for movies and TV shows, Metacritic Metascore for games, shown next to the IMDb/TMDB/IGDB logos and cached server-side.
 - **Duplicate detection** and merge tooling that doesn't lose seen / ratings / lists.
 - **Full backup / restore** including auto-restore on missing data.db, plus JSON and Letterboxd CSV exports.
@@ -125,6 +127,7 @@ CSS / JS edits regenerate the brotli + gzip pre-compressed variants so the stati
 ├── docker-compose.example.yml       # service definition stub — copy to docker-compose.yml
 ├── patch_01_security_pre_npm.js     # runs BEFORE npm install: package.json + overrides
 ├── patch_02..10_*.js                # mega-patches grouped by domain
+├── patch_11..62_*.js                # standalone patches written after the consolidation
 ├── _build_megapatches.js            # helper to consolidate ad-hoc scripts into mega-patches
 ├── release.sh                       # version bump + tag + push + draft GH release
 ├── PATCHES.md / STRINGS.md / SETUP_DOMAIN.md / TASKS.md
