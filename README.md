@@ -127,7 +127,7 @@ CSS / JS edits regenerate the brotli + gzip pre-compressed variants so the stati
 ├── docker-compose.example.yml       # service definition stub — copy to docker-compose.yml
 ├── patch_01_security_pre_npm.js     # runs BEFORE npm install: package.json + overrides
 ├── patch_02..10_*.js                # mega-patches grouped by domain
-├── patch_11..62_*.js                # standalone patches written after the consolidation
+├── patch_11..64_*.js                # standalone patches written after the consolidation
 ├── _build_megapatches.js            # helper to consolidate ad-hoc scripts into mega-patches
 ├── release.sh                       # version bump + tag + push + draft GH release
 ├── PATCHES.md / STRINGS.md / SETUP_DOMAIN.md / TASKS.md

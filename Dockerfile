@@ -237,9 +237,6 @@ RUN --mount=type=bind,source=patch_48_no_refetch_on_focus.js,target=/tmp/patch_4
 # --- patch_49: al acabar la temporada, la serie sale sola de En proceso ---
 RUN --mount=type=bind,source=patch_49_aip_drops_when_season_over.js,target=/tmp/patch_49_aip_drops_when_season_over.js node /tmp/patch_49_aip_drops_when_season_over.js
 
-# --- patch_50: SONDA TEMPORAL — por que se recarga sola la pagina (parpadeo) ---
-RUN --mount=type=bind,source=patch_50_boot_reason_probe.js,target=/tmp/patch_50_boot_reason_probe.js node /tmp/patch_50_boot_reason_probe.js
-
 # --- patch_51: la estrella de puntuar tambien en items sin fecha de estreno ---
 RUN --mount=type=bind,source=patch_51_rate_star_without_release_date.js,target=/tmp/patch_51_rate_star_without_release_date.js node /tmp/patch_51_rate_star_without_release_date.js
 
@@ -278,6 +275,9 @@ RUN --mount=type=bind,source=patch_62_chapter_indicator.js,target=/tmp/patch_62_
 
 # --- patch_63: "Numero de capitulos" en la ficha (Audible real + estimado en libros). ANTES de patch_10.
 RUN --mount=type=bind,source=patch_63_chapters_metadata.js,target=/tmp/patch_63_chapters_metadata.js node /tmp/patch_63_chapters_metadata.js
+
+# --- patch_64: En proceso pinta al abrir su ultima respuesta (sin saltos de las secciones). ANTES de patch_10.
+RUN --mount=type=bind,source=patch_64_inprogress_instant_paint.js,target=/tmp/patch_64_inprogress_instant_paint.js node /tmp/patch_64_inprogress_instant_paint.js
 
 # Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
 # import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.

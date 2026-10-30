@@ -1,6 +1,6 @@
 # Patches inventory
 
-10 mega-patches (`patch_01`–`patch_10`) plus 50 standalone patches (`patch_11`–`patch_62`),
+10 mega-patches (`patch_01`–`patch_10`) plus 51 standalone patches (`patch_11`–`patch_64`),
 applied in order by the `Dockerfile`. Each mega-patch is the literal
 concatenation of its constituent scripts (originally 184 individual `patch_*.js`
 files, consolidated for readability); everything written after the
@@ -46,13 +46,13 @@ a different minifier output, several anchors can break and have to be updated.
 
 Total: **184 constituents** across 10 mega-patches.
 
-## Standalone patches (11–62)
+## Standalone patches (11–64)
 
 Execution order in the `Dockerfile`: `01` → `npm install` → `02`…`09` →
-`11`…`55`, `57`…`62` → **`10`** → bundle recompression → `56`.
+`11`…`49`, `51`…`55`, `57`…`64` → **`10`** → bundle recompression → `56`.
 Anything that touches the SPA bundle must run **before `patch_10`** (its rename
 steps bump the content hashes). `patch_56` only touches the backend
-(`knex/queries/items.js`), so it can run after. There is no `patch_15` / `patch_16`.
+(`knex/queries/items.js`), so it can run after. There is no `patch_15` / `patch_16`; `patch_50` was a temporary diagnostic probe, removed on 2026-10-30.
 
 | # | File | What it does |
 |---|---|---|
@@ -93,7 +93,6 @@ steps bump the content hashes). `patch_56` only touches the backend
 | 47 | `patch_47_home_centered.js` | Home page centred. |
 | 48 | `patch_48_no_refetch_on_focus.js` | No spontaneous refetch on window focus / reconnect (the "flicker"). |
 | 49 | `patch_49_aip_drops_when_season_over.js` | A show leaves *In progress* by itself when the season you were watching ends. |
-| 50 | `patch_50_boot_reason_probe.js` | **Temporary** diagnostic probe for unexpected reloads (remove once closed). |
 | 51 | `patch_51_rate_star_without_release_date.js` | Rating star on cards for items with no release date. |
 | 52 | `patch_52_filmaffinity_rating.js` | FilmAffinity rating on movie / TV details pages. |
 | 53 | `patch_53_metacritic_rating.js` | Metacritic Metascore on game details pages. |
@@ -106,6 +105,8 @@ steps bump the content hashes). `patch_56` only touches the backend
 | 60 | `patch_60_start_page_route.js` | With *In progress* as start page, `/` always goes there (also after login); Home moves to `/inicio`. |
 | 61 | `patch_61_spa_fallback.js` | SPA fallback: reloading any frontend route (`/in-progress`...) serves the app instead of `Cannot GET`. |
 | 62 | `patch_62_chapter_indicator.js` | Chapter indicator on top of the read / listen progress bars. |
+| 63 | `patch_63_chapters_metadata.js` | Editable "number of chapters" on book / audiobook details (real count from Audible), wired to the progress modal. |
+| 64 | `patch_64_inprogress_instant_paint.js` | *In progress* paints its last response on open (localStorage placeholder) and refreshes silently: no sections jumping while they load. |
 
 ## Maintenance
 
