@@ -1,0 +1,4 @@
+# DS-0002 "Image user should not be root": accepted on purpose. The container starts as root
+# only to remap PUID/PGID and fix the ownership of the mounted volumes (docker/entrypoint.sh),
+# then runs the app as the unprivileged user "abc" (su -c "node /app/build/index.js" abc).
+DS-0002
