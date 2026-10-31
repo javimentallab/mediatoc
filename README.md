@@ -13,6 +13,11 @@
 
 Self-hosted tracker for everything you watch, read, play, listen to and attend — movies, TV, video games, books, audiobooks, theatre and YouTube videos — with the level of detail that the rest of the trackers don't bother with.
 
+<p align="center">
+  <img src="docs/screenshot-details.png" width="49%" alt="Details page of a show">
+  <img src="docs/screenshot-in-progress.png" width="49%" alt="In progress page">
+</p>
+
 ---
 
 ## What it is
