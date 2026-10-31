@@ -1,22 +1,22 @@
-# Example docker-compose for MediaTOC.
+# Example docker-compose for MediaOCD.
 # Copy this to your real compose file and fill in the env vars.
 #
 # Required: nothing — Jellyfin and YouTube OAuth are optional.
 # All secrets below should ideally come from a `.env` file (not committed).
 
 services:
-  mediatoc:
-    build: .   # path to this repo (the mediatoc dir)
-    image: mediatoc:latest
-    container_name: mediatoc
+  mediaocd:
+    build: .   # path to this repo (the mediaocd dir)
+    image: mediaocd:latest
+    container_name: mediaocd
     restart: unless-stopped
     ports:
       - "7481:7481"
     volumes:
       # Persistent data — /storage/data.db lives here.
-      - ./mediatoc-data:/storage
+      - ./mediaocd-data:/storage
       # Image cache — bind-mounted so server-side images survive container rebuilds.
-      - ./mediatoc-assets:/assets
+      - ./mediaocd-assets:/assets
     environment:
       # --- Jellyfin integration (optional) ---
       # If set, MT can sync seen status with Jellyfin and show "Available on Jellyfin" badges.

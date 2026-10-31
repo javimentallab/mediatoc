@@ -1,1 +1,0 @@
-{"version":3,"file":"sessionKey.js","names":[],"sources":["../../src/entity/sessionKey.ts"],"sourcesContent":["export type SessionKey = {\n  id?: number;\n  key: string;\n  createdAt: number;\n};\n"],"mappings":"","ignoreList":[]}

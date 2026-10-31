@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Usage: ./release.sh <new-version>   (e.g. ./release.sh 1.1.4)
 #
-# Cuts a new MediaTOC release: bumps FORK_VERSION in patch_02, commits,
+# Cuts a new MediaOCD release: bumps the version in app/build/config.js and
+# app/package.json, commits,
 # creates an annotated tag, pushes both, and opens a draft GitHub release
 # pre-filled with `git log --oneline` since the previous tag for you to edit.
 #
@@ -47,20 +48,21 @@ if [[ -n "$PREV_TAG" ]]; then
   PREV_VERSION="${PREV_TAG#v}"
 fi
 
-# Bump FORK_VERSION in patch_02 (the patch that overwrites /app/build/config.js).
-# The constant is idempotent: any X.Y.Z value gets rewritten to the new one.
-PATCH_FILE="patch_02_backend_db_items.js"
-if ! grep -q "^const FORK_VERSION = '" "$PATCH_FILE"; then
-  echo "error: FORK_VERSION anchor not found in $PATCH_FILE" >&2
+# Bump the version: app/build/config.js (`static version = 'X.Y.Z';`, shown in the app)
+# and app/package.json.
+CONFIG_FILE="app/build/config.js"
+if ! grep -q "static version = '" "$CONFIG_FILE"; then
+  echo "error: version line not found in $CONFIG_FILE" >&2
   exit 1
 fi
-sed -i "s/^const FORK_VERSION = '[^']*';/const FORK_VERSION = '$NEW_VERSION';/" "$PATCH_FILE"
-echo "bumped FORK_VERSION in $PATCH_FILE → $NEW_VERSION"
+sed -i "s/static version = '[^']*';/static version = '$NEW_VERSION';/" "$CONFIG_FILE"
+node -e "const f='app/package.json',fs=require('fs'),j=JSON.parse(fs.readFileSync(f,'utf8'));j.version='$NEW_VERSION';fs.writeFileSync(f,JSON.stringify(j,null,2)+'\n')"
+echo "bumped version → $NEW_VERSION"
 
 # Commit + tag + push
-git add "$PATCH_FILE"
+git add "$CONFIG_FILE" app/package.json
 git commit -m "v$NEW_VERSION: bump version"
-git tag -a "v$NEW_VERSION" -m "MediaTOC v$NEW_VERSION"
+git tag -a "v$NEW_VERSION" -m "MediaOCD v$NEW_VERSION"
 git push origin main "v$NEW_VERSION"
 echo "pushed main + v$NEW_VERSION"
 

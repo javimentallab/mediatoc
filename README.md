@@ -1,9 +1,13 @@
-# MediaTOC
+<p align="center"><img src="docs/logo.svg" width="128" height="128" alt="MediaOCD logo"></p>
 
-[![validate-patches](https://github.com/javimentallab/mediatoc/actions/workflows/validate-patches.yml/badge.svg)](https://github.com/javimentallab/mediatoc/actions/workflows/validate-patches.yml)
-[![trivy-scan](https://github.com/javimentallab/mediatoc/actions/workflows/trivy-scan.yml/badge.svg)](https://github.com/javimentallab/mediatoc/actions/workflows/trivy-scan.yml)
-[![release](https://img.shields.io/github/v/release/javimentallab/mediatoc)](https://github.com/javimentallab/mediatoc/releases/latest)
-[![license](https://img.shields.io/github/license/javimentallab/mediatoc)](./LICENSE)
+<h1 align="center">MediaOCD</h1>
+
+<p align="center">
+<a href="https://github.com/javimentallab/mediaocd/actions/workflows/build.yml"><img src="https://github.com/javimentallab/mediaocd/actions/workflows/build.yml/badge.svg" alt="build"></a>
+<a href="https://github.com/javimentallab/mediaocd/actions/workflows/trivy-scan.yml"><img src="https://github.com/javimentallab/mediaocd/actions/workflows/trivy-scan.yml/badge.svg" alt="trivy-scan"></a>
+<a href="https://github.com/javimentallab/mediaocd/releases/latest"><img src="https://img.shields.io/github/v/release/javimentallab/mediaocd" alt="release"></a>
+<a href="./LICENSE"><img src="https://img.shields.io/github/license/javimentallab/mediaocd" alt="license"></a>
+</p>
 
 > *A media tracker for the obsessively organised — the kind of person who cares which one of the 14 productions of "La casa de Bernarda Alba" they actually saw.*
 
@@ -13,11 +17,11 @@ Self-hosted tracker for everything you watch, read, play, listen to and attend �
 
 ## What it is
 
-A media tracker built for **completionists**, Spanish-first but localized to seven languages:
+A media tracker built for **completionists**, Spanish-first and translated into 16 languages:
 
 - **Per-medium consumption verbs**, not just "seen": played / watched / read / listened / attended. The same item can have several.
 - **"In progress" page that keeps itself tidy**: everything you are watching, reading, playing or listening to, for every media type. Airing shows stay while you are up to date, the card shows the next episode (even one you watched ahead of its air date) and a show leaves by itself when its season or series ends. Abandoned items have their own list. You can make it your start page.
-- **Progress in real units**: hours and minutes for movies, games, theatre and episodes; pages for books; position for audiobooks, with a chapter indicator over the read / listen bars.
+- **Progress in real units**: hours and minutes for movies, games, theatre and episodes; pages for books; position for audiobooks, with a chapter indicator over the read / listen bars and the real chapter count of Audible audiobooks.
 - **Two-way Jellyfin integration**: marks items as downloaded when they appear in your Jellyfin library, opens "Play in Jellyfin" deeplinks, sync-back when you watch something there.
 - **YouTube as a first-class media type**: subscribe to channels, mark videos watched, view the recent feed, persistent cache that survives YouTube's RSS outages.
 - **Theatre with serious metadata**: Wikidata SPARQL for canonical works + scraping of teatro.es (CDT/INAEM, Spain) for contemporary stagings.
@@ -25,7 +29,7 @@ A media tracker built for **completionists**, Spanish-first but localized to sev
 - **External scores on the details page**: FilmAffinity rating for movies and TV shows, Metacritic Metascore for games, shown next to the IMDb/TMDB/IGDB logos and cached server-side.
 - **Duplicate detection** and merge tooling that doesn't lose seen / ratings / lists.
 - **Full backup / restore** including auto-restore on missing data.db, plus JSON and Letterboxd CSV exports.
-- **i18n**: 7 languages (es / en / pt / fr / de / da / ko) with a custom catalogue.
+- **16 interface languages**: English, Spanish, Portuguese, French, German, Italian, Dutch, Polish, Russian, Ukrainian, Danish, Chinese, Japanese, Korean, Thai and Hindi. It follows the browser's language; *Settings → Configuration → UI language* forces one.
 
 Designed to live in your own infrastructure next to Jellyfin, qBittorrent, Home Assistant and whatever else.
 
@@ -34,14 +38,14 @@ Designed to live in your own infrastructure next to Jellyfin, qBittorrent, Home 
 Requires Docker Engine 20+ with the Compose v2 plugin.
 
 ```sh
-git clone https://github.com/javimentallab/mediatoc.git
-cd mediatoc
+git clone https://github.com/javimentallab/mediaocd.git
+cd mediaocd
 
 cp docker-compose.example.yml docker-compose.yml
-${EDITOR:-nano} docker-compose.yml      # set IGDB_CLIENT_ID/SECRET, optional Jellyfin/YouTube/Google
+${EDITOR:-nano} docker-compose.yml      # optional Jellyfin / YouTube (Google OAuth)
 
-docker compose build mediatoc
-docker compose up -d mediatoc
+docker compose build mediaocd
+docker compose up -d mediaocd
 ```
 
 Open `http://localhost:7481` — the first user to register becomes admin.
@@ -51,6 +55,8 @@ Open `http://localhost:7481` — the first user to register becomes admin.
 - TMDB API key (recommended for "Where to watch" providers and episode runtimes — paste it in the UI; it's stored at `/storage/tmdb-key.json` with mode 0600)
 - Jellyfin (URL + API key)
 - YouTube (Google OAuth)
+
+To put it behind your own domain, see [`SETUP_DOMAIN.md`](SETUP_DOMAIN.md).
 
 ## Custom endpoints
 
@@ -82,11 +88,11 @@ Open `http://localhost:7481` — the first user to register becomes admin.
 
 ## Companion: `contrib/jf-torrents-organize`
 
-Optional but recommended if you run **qBittorrent + Jellyfin** alongside MediaTOC.
+Optional but recommended if you run **qBittorrent + Jellyfin** alongside MediaOCD.
 
 qBittorrent saves torrents at release-style paths
 (`/data/torrents/Title (YYYY) [Bluray 1080p][Esp]/foo.mkv`). Jellyfin matches
-metadata poorly against those names, so MediaTOC's **Downloaded** badge —
+metadata poorly against those names, so MediaOCD's **Downloaded** badge —
 which reads from Jellyfin — never lights up. The fix isn't to rename the
 qBit folder (that breaks seeding); it's to create **hardlinks** in a clean
 parallel structure that Jellyfin indexes correctly. Same inode, zero extra
@@ -95,8 +101,8 @@ bytes on disk.
 `contrib/jf-torrents-organize/` ships a small Python script + systemd units
 that do exactly that, plus a `/Library/Refresh` call to Jellyfin so the new
 entries appear immediately. It reads the Jellyfin URL + API key directly
-from MediaTOC's own storage (`/storage/jellyfin-config.json`) so if you
-already configured Jellyfin in MediaTOC, no extra credentials needed.
+from MediaOCD's own storage (`/storage/jellyfin-config.json`) so if you
+already configured Jellyfin in MediaOCD, no extra credentials needed.
 
 See [`contrib/jf-torrents-organize/README.md`](contrib/jf-torrents-organize/README.md)
 for layout requirements, env vars and footguns.
@@ -106,48 +112,54 @@ for layout requirements, env vars and footguns.
 The image doesn't ship a cron — recommended pattern:
 
 ```cron
-0 3 * * * /path/to/backup-mediatoc.sh >> /path/to/backup.log 2>&1
+0 3 * * * /path/to/backup-mediaocd.sh >> /path/to/backup.log 2>&1
 30 3 * * * bash /path/to/verify-backup.sh --quiet >> /path/to/verify.log 2>&1
 ```
 
-Both scripts use `docker exec mediatoc` and rotate keeping 7 daily / 4 weekly / 3 monthly. Best to keep them outside the image, next to the data volume.
+Both scripts use `docker exec mediaocd` and rotate keeping 7 daily / 4 weekly / 3 monthly. Best to keep them outside the image, next to the data volume.
 
-## Build internals
+## Development
 
-The image is produced by composing a series of small JS scripts on top of a base image — see [`PATCHES.md`](PATCHES.md) for the full inventory. Each script is idempotent, fails loudly if the upstream layout changes (so build breaks rather than silently producing wrong code), and is one-Docker-layer per script for cache efficiency.
-
-CSS / JS edits regenerate the brotli + gzip pre-compressed variants so the static server (and any CDN in front) doesn't keep serving stale bytes after a rebuild.
-
-### Repo layout
+There is no build step: the image copies `app/` as is on top of the official Node image
+and installs the dependencies from `app/package-lock.json`.
 
 ```
 .
-├── Dockerfile                       # FROM node:<version>-alpine + upstream/ + one RUN per patch
-├── upstream/                        # unmodified MediaTracker 0.2.11 app + our package-lock (see upstream/README.md)
-├── docker-compose.example.yml       # service definition stub — copy to docker-compose.yml
-├── patch_01_security_pre_npm.js     # runs BEFORE npm install: package.json + overrides
-├── patch_02..10_*.js                # mega-patches grouped by domain
-├── patch_11..65_*.js                # standalone patches written after the consolidation
-├── _build_megapatches.js            # helper to consolidate ad-hoc scripts into mega-patches
-├── release.sh                       # version bump + tag + push + draft GH release
-├── PATCHES.md / STRINGS.md / SETUP_DOMAIN.md / TASKS.md
+├── app/
+│   ├── build/              # server (Node, Express, SQLite via knex): edit the .js files directly
+│   ├── public/             # web client: index.html, the bundle main_*.js, CSS, service worker, icons
+│   ├── package.json        # dependencies; app/package-lock.json pins the exact tree
+│   └── package-lock.json
+├── docker/entrypoint.sh    # PUID/PGID, auto-restore of data.db from the latest backup, start
+├── tools/rehash-web.js     # run after editing app/public (renames the bundle, bumps the service worker)
+├── docs/                   # logo
+├── contrib/                # jf-torrents-organize
+├── Dockerfile
+├── docker-compose.example.yml
+├── release.sh
 └── .github/workflows/
-    ├── validate-patches.yml         # node --check + JSON sanity on every push/PR
-    └── trivy-scan.yml               # CVE scan on push/PR/weekly + SARIF to Security tab
+    ├── build.yml           # builds the image, starts it and checks that it answers
+    └── trivy-scan.yml      # CVE scan on push/PR/weekly + SARIF to the Security tab
 ```
 
-> ⚠ **Important**: any patch that modifies `/app/build/**` (controllers, queries, locales, the SPA bundle, …) MUST live in `patch_02` or later. The bonukai base image's `npm install` step (run between `patch_01` and `patch_02`) re-extracts `/app/build/` from package sources, silently wiping anything `patch_01` wrote there.
+- **Server changes**: edit `app/build/**`, rebuild the image (`docker compose up -d --build mediaocd`).
+- **Web client changes**: edit `app/public/main_*.js` / `.css` / `index.html`, then run
+  `node tools/rehash-web.js` before building, so browsers and the service worker pick up the new files.
+- **Translations** live in the bundle, one catalogue per language (search for `"In progress":`).
+- **Dependencies**: edit `app/package.json`, build, then refresh the lock with
+  `docker cp mediaocd:/app/package-lock.json app/`.
+- **Node**: change tag and digest in the `FROM` line of the `Dockerfile`.
 
 ## Releasing
 
 ```sh
-./release.sh 1.1.4
+./release.sh 1.2.0
 ```
 
-- Aborts if working tree is dirty, branch isn't `main`, tag already exists, or version isn't semver.
-- Bumps `FORK_VERSION` in `patch_02_backend_db_items.js`.
-- Commits, tags `v1.1.4`, pushes both, drafts a GitHub release with the commit log since the previous tag for you to edit before publishing.
+- Aborts if the working tree is dirty, the branch isn't `main`, the tag already exists or the version isn't semver.
+- Bumps the version in `app/build/config.js` and `app/package.json`.
+- Commits, tags `v1.2.0`, pushes both and drafts a GitHub release with the commit log since the previous tag, for you to edit before publishing.
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE) and [`NOTICE.md`](NOTICE.md).
+MIT — see [`LICENSE`](LICENSE).

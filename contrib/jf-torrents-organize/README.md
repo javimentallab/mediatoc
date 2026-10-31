@@ -1,11 +1,11 @@
 # jf-torrents-organize
 
-Companion script for MediaTOC: hardlinks qBittorrent's raw downloads into
-clean Jellyfin library folders so MediaTOC's **Downloaded** badge lights up
+Companion script for MediaOCD: hardlinks qBittorrent's raw downloads into
+clean Jellyfin library folders so MediaOCD's **Downloaded** badge lights up
 without breaking the seed.
 
-This is **optional**. MediaTOC itself doesn't need it — but if you run
-qBittorrent + Jellyfin together and want MediaTOC to detect downloaded
+This is **optional**. MediaOCD itself doesn't need it — but if you run
+qBittorrent + Jellyfin together and want MediaOCD to detect downloaded
 items via Jellyfin's library, you almost certainly want this.
 
 ## The problem
@@ -17,7 +17,7 @@ qBittorrent saves a torrent's data at a release-style path:
 ```
 
 Jellyfin matches metadata against folder/file names. With raw release names
-its matches are noisy or wrong, and MediaTOC's "Downloaded" detection
+its matches are noisy or wrong, and MediaOCD's "Downloaded" detection
 (which reads from Jellyfin) misfires.
 
 The obvious fix — renaming or moving the files to a clean structure —
@@ -78,15 +78,15 @@ All knobs are environment variables. Defaults match a typical compose:
 | `JF_CONTAINER`           | `jellyfin`                                    | Jellyfin container name (used for `docker exec ln/mkdir`) |
 | `JF_URL`                 | _(unset)_                                     | Jellyfin URL for `/Library/Refresh` (e.g. `http://localhost:8096`) |
 | `JF_API_KEY`             | _(unset)_                                     | Jellyfin API key                                        |
-| `JF_CONFIG_CONTAINER`    | `mediatoc`                                    | Fallback when `JF_URL`+`JF_API_KEY` are unset           |
+| `JF_CONFIG_CONTAINER`    | `mediaocd`                                    | Fallback when `JF_URL`+`JF_API_KEY` are unset           |
 | `JF_CONFIG_PATH`         | `/storage/jellyfin-config.json`               | Fallback path inside `JF_CONFIG_CONTAINER`              |
 | `JUNK_FILES`             | _(empty)_                                     | Comma-separated extra filenames to ignore               |
 | `SERIES_ALIASES_FILE`    | _(empty)_                                     | Optional JSON file with `{canonical: [variants...]}`    |
 
 If `JF_URL`+`JF_API_KEY` are unset, the script falls back to reading them
-from MediaTOC's stored config (`/storage/jellyfin-config.json` inside the
-`mediatoc` container). MediaTOC stores this for its own Jellyfin sync, so
-if you're already running MediaTOC, no extra setup is needed.
+from MediaOCD's stored config (`/storage/jellyfin-config.json` inside the
+`mediaocd` container). MediaOCD stores this for its own Jellyfin sync, so
+if you're already running MediaOCD, no extra setup is needed.
 
 ### Series aliases
 
@@ -161,4 +161,4 @@ case-insensitive. Without the file, the raw folder name is used verbatim.
 
 ## License
 
-MIT, like the rest of the MediaTOC project.
+MIT, like the rest of the MediaOCD project.

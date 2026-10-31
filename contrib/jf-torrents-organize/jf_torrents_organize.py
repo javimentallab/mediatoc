@@ -24,9 +24,9 @@ the file alive at the other. Idempotent: if dst exists, skip.
 When run with --apply, after creating any new links the script also calls
 Jellyfin's /Library/Refresh so the new entries show up immediately.
 
-Why this matters for MediaTOC: MediaTOC reads Jellyfin's library to flag
+Why this matters for MediaOCD: MediaOCD reads Jellyfin's library to flag
 items as "Downloaded" in its UI. If Jellyfin can't see your torrent files
-under clean names, MediaTOC never lights up the Downloaded badge. This
+under clean names, MediaOCD never lights up the Downloaded badge. This
 script is the bridge.
 
 Configuration is via environment variables (all optional, with defaults
@@ -95,12 +95,12 @@ JF_CONTAINER = os.environ.get("JF_CONTAINER", "jellyfin")
 # Two ways to provide Jellyfin URL + API key:
 #   1. Explicit: set JF_URL + JF_API_KEY.
 #   2. Sibling container: leave them empty, set JF_CONFIG_CONTAINER (defaults
-#      to "mediatoc") and JF_CONFIG_PATH (defaults to
+#      to "mediaocd") and JF_CONFIG_PATH (defaults to
 #      "/storage/jellyfin-config.json"). The script will run
 #      `docker exec <container> cat <path>` and parse {url, apiKey}.
 JF_URL = os.environ.get("JF_URL", "").rstrip("/")
 JF_API_KEY = os.environ.get("JF_API_KEY", "")
-JF_CONFIG_CONTAINER = os.environ.get("JF_CONFIG_CONTAINER", "mediatoc")
+JF_CONFIG_CONTAINER = os.environ.get("JF_CONFIG_CONTAINER", "mediaocd")
 JF_CONFIG_PATH = os.environ.get(
     "JF_CONFIG_PATH", "/storage/jellyfin-config.json"
 )

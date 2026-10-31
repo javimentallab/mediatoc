@@ -1,0 +1,47 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build the image, start it and check it answers
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Server code parses
+        run: |
+          for f in $(find app/build -name '*.js'); do node --check "$f" || exit 1; done
+          node -e "JSON.parse(require('fs').readFileSync('app/package.json'))"
+          node -e "JSON.parse(require('fs').readFileSync('app/public/manifest.json'))"
+
+      - name: Web client is up to date with tools/rehash-web.js
+        run: |
+          node tools/rehash-web.js
+          git diff --exit-code --stat app/public || { echo "run node tools/rehash-web.js and commit"; exit 1; }
+
+      - name: Build image
+        run: |
+          set -o pipefail
+          docker build --tag mediaocd:ci --progress=plain . 2>&1 | tail -60
+
+      - name: Start it on an empty volume and check the API and the web client
+        run: |
+          docker run -d --name mediaocd-ci -p 7481:7481 mediaocd:ci
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:7481/api/configuration >/dev/null && break
+            sleep 2
+          done
+          curl -fsS http://localhost:7481/api/configuration
+          bundle=$(curl -fsS http://localhost:7481/ | grep -o 'main_[0-9a-f_]*\.js' | head -1)
+          test -n "$bundle"
+          curl -fsS -H 'Accept-Encoding: br' -o /dev/null -w '%{http_code} %{size_download}\n' "http://localhost:7481/$bundle"
+          curl -fsS -o /dev/null http://localhost:7481/favicon.ico
+          docker logs mediaocd-ci 2>&1 | tail -5

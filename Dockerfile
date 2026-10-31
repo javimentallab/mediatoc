@@ -1,15 +1,12 @@
-# The upstream app lives in this repo under upstream/ (see upstream/README.md):
-# the compiled /app/build, /app/public, package.json and entrypoint.sh taken
-# from bonukai/mediatracker@sha256:4397847e… (last release, Feb 2025, MIT),
-# plus the package-lock.json of our own last good build. No third-party image
-# is needed besides the official Node one: bump Node by changing this FROM.
+# MediaOCD. The app is in app/ (server in app/build, web client in app/public) and is
+# copied as is: no build step, no third-party image besides the official Node one.
+# Bump Node by changing tag + digest here
+# (curl -s https://hub.docker.com/v2/repositories/library/node/tags/<tag> -> .digest).
 FROM node:22.23.4-alpine3.23@sha256:206878a60dc7014193f418ab9259b6110c15fbd514b3044a267be706509944e4
 
-# Same abc user (uid/gid 1000, remapped by PUID/PGID in entrypoint.sh) as the
-# upstream image. --non-unique: node:alpine already has `node` on 1000. curl is
-# used by the app (execFile) and shadow by entrypoint.sh. Upstream's /libvips
-# and its system libs (glib, libwebp, tiff...) are gone: sharp bundles its own
-# libvips through @img/sharp-libvips-linuxmusl-x64.
+# abc user (uid/gid 1000, remapped by PUID/PGID in docker/entrypoint.sh). --non-unique:
+# node:alpine already has `node` on 1000. curl is used by the app (execFile) and shadow
+# by the entrypoint. sharp bundles its own libvips (@img/sharp-libvips-linuxmusl-x64).
 RUN apk add --no-cache curl shadow && \
     groupadd --non-unique --gid 1000 abc && \
     useradd --non-unique --create-home --uid 1000 --gid abc abc
@@ -17,44 +14,20 @@ RUN apk add --no-cache curl shadow && \
 ENV PORT=7481 PUID=1000 PGID=1000 \
     DATABASE_PATH=/storage/data.db ASSETS_PATH=/assets LOGS_PATH=/logs \
     NODE_ENV=production
-COPY upstream/docker /docker
-COPY upstream/app /app
 VOLUME ["/storage", "/assets", "/logs"]
 WORKDIR /app
 EXPOSE 7481
-ENTRYPOINT ["sh", "/docker/entrypoint.sh"]
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD wget -q -O /dev/null "http://$(hostname):7481/api/configuration" || exit 1
-
-# --- Security: CVE updates (Trivy-flagged HIGH/CRITICAL on the upstream image) ---
-
-# Alpine: upgrade ALL OS-level packages with HIGH/CRITICAL CVEs flagged by Trivy
-# (libcrypto3, libssl3, libpng, expat, libexpat, musl, musl-utils, lcms2, zlib).
-# `apk upgrade --available` bumps anything where the repo has a newer version,
-# which is the only way to clear most of these without changing base image.
+# OS packages with fixes available (Trivy HIGH/CRITICAL on the Alpine base).
 RUN apk update && apk upgrade --no-cache --available && rm -rf /var/cache/apk/*
 
-# Layer budget: every patch runs as ONE layer via a read-only bind mount
-# (`RUN --mount=type=bind,source=patch_NN.js,target=/tmp/patch_NN.js node ...`).
-# Don't go back to COPY + RUN per patch: that's two layers each and at ~130
-# the build dies with "max depth exceeded" (overlayfs limit, hit in CI with
-# patch_55). The bind mount keeps per-patch cache invalidation.
-
-# Bucket 01 — pre-npm: bumps direct deps (axios, fast-xml-parser, form-data, lodash)
-# and adds overrides for path-to-regexp + tar-fs in /app/package.json. Must run
-# BEFORE `npm install` so the new ranges + overrides take effect on rebuild.
-SHELL ["/bin/sh", "-eo", "pipefail", "-c"]
-RUN --mount=type=bind,source=patch_01_security_pre_npm.js,target=/tmp/patch_01_security_pre_npm.js node /tmp/patch_01_security_pre_npm.js
-
-# node_modules is installed from scratch from upstream/app/package-lock.json,
-# so every build gets the exact tree of the last good one. To bump a dep, change
-# it in patch_01 and refresh the lock (docker cp mediatoc:/app/package-lock.json
-# upstream/app/ after a build). better-sqlite3's install script fetches the
-# musl prebuilt for this Node; the temporary toolchain is only the fallback.
-# npm/npx/corepack are deleted in this same layer: nothing after it (patches
-# or the app) runs them, and the copy bundled in the node image carries its
-# own HIGH CVEs (brace-expansion, sigstore, pacote...) that fail trivy-scan.
+# Dependencies: exactly the tree in app/package-lock.json. better-sqlite3's install script
+# fetches the musl prebuilt for this Node; the temporary toolchain is only the fallback.
+# npm/npx/corepack are deleted in this same layer: nothing after it runs them, and the
+# copy bundled in the node image carries its own HIGH CVEs that would fail Trivy.
+# To change a dependency: edit app/package.json, build, then
+#   docker cp mediaocd:/app/package-lock.json app/
+COPY app/package.json app/package-lock.json /app/
 RUN cd /app && \
     apk add --no-cache --virtual .build-deps python3 make g++ && \
     npm install --legacy-peer-deps --no-audit --no-fund 2>&1 | tail -25 && \
@@ -63,33 +36,28 @@ RUN cd /app && \
            /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack && \
     rm -rf /root/.npm /root/.cache /var/cache/apk/*
 
-# Force express's nested path-to-regexp to 0.1.13 — npm overrides + nested
-# install both failed in this image. Workaround: download the 0.1.13 tarball
-# from the npm registry and overwrite the nested copy in-place. The 0.1.13
-# release is a single-file regex change so this is safe.
-# Targets CVE-2026-4867 (ReDoS via catastrophic backtracking).
+# express's nested path-to-regexp forced to 0.1.13 (CVE-2026-4867, ReDoS): npm overrides
+# don't reach it, so the 0.1.13 tarball replaces the nested copy, and express's own
+# package.json declares it so audits match what is on disk.
 RUN cd /tmp && \
     wget -q https://registry.npmjs.org/path-to-regexp/-/path-to-regexp-0.1.13.tgz && \
     mkdir -p ptr && tar xzf path-to-regexp-0.1.13.tgz -C ptr && \
     rm -rf /app/node_modules/express/node_modules/path-to-regexp && \
     mv ptr/package /app/node_modules/express/node_modules/path-to-regexp && \
     rm -rf /tmp/ptr /tmp/path-to-regexp-0.1.13.tgz && \
-    node -p "'path-to-regexp (express nested) → ' + require('/app/node_modules/express/node_modules/path-to-regexp/package.json').version"
+    node -e " \
+      const fs = require('fs'), p = '/app/node_modules/express/package.json'; \
+      const j = JSON.parse(fs.readFileSync(p, 'utf8')); \
+      j.dependencies['path-to-regexp'] = '0.1.13'; \
+      fs.writeFileSync(p, JSON.stringify(j, null, 2)); \
+      console.log('path-to-regexp (express nested) -> ' + require('/app/node_modules/express/node_modules/path-to-regexp/package.json').version); \
+    "
 
-# Sanity: print resolved versions for the bumped packages so build logs document the fix.
+# Smoke test: LOAD the packages most likely to break (native sharp/libvips on musl,
+# better-sqlite3, argon2, nanoid that must stay CJS), not just read their package.json.
 RUN cd /app && for p in axios fast-xml-parser form-data lodash ajv nanoid sharp proxy-addr; do \
       echo "$p: $(node -p "require('$p/package.json').version")"; \
-    done
-
-# Smoke test: actually LOAD the two packages most likely to break, not just
-# read their package.json. sharp ships a native binary (libvips) resolved on
-# Alpine musl through an optionalDependency (@img/sharp-linuxmusl-*); if npm
-# install picks the wrong one, `require('sharp')` blows up here instead of in
-# production. nanoid rides along because it must stay CJS: if it ever gets
-# bumped to 5.x (ESM-only) this require fails and the build says so.
-# The Trivy workflow only builds and scans, it never starts the app, so
-# without this check a broken bump would sail through CI green.
-RUN cd /app && node -e " \
+    done && node -e " \
       const sharp = require('sharp'); \
       const n = require('nanoid'); \
       if (typeof sharp !== 'function') throw new Error('sharp does not export a function'); \
@@ -100,202 +68,28 @@ RUN cd /app && node -e " \
       const db = new (require('better-sqlite3'))(':memory:'); \
       if (db.prepare('select 1 as x').get().x !== 1) throw new Error('better-sqlite3: bad query result'); \
       if (typeof require('argon2').hash !== 'function') throw new Error('argon2: missing hash'); \
-      console.log('smoke: node ' + process.version + ' / sharp ' + sharp.versions.sharp + ' / libvips ' + sharp.versions.vips + ' + better-sqlite3 + argon2 + nanoid CJS OK'); \
+      console.log('smoke: node ' + process.version + ' / sharp ' + sharp.versions.sharp + ' + better-sqlite3 + argon2 + nanoid CJS OK'); \
       sharp({ create: { width: 4, height: 4, channels: 3, background: '#f00' } }).resize(2).jpeg().toBuffer() \
         .then((b) => { if (b[0] !== 0xff || b[1] !== 0xd8) throw new Error('sharp: bad JPEG'); console.log('smoke: sharp resize+jpeg OK'); }); \
     "
 
-# --- Mega-patches 02 → 10 (consolidated from ~184 individual patch_*.js scripts) ---
-# Each mega-patch is the literal concatenation of its constituents in execution
-# order; each constituent is wrapped in an IIFE so its top-level vars don't
-# collide, and `process.exit(0)` is rewritten to `return` so an early-success
-# guard inside one constituent doesn't abort the whole mega-patch.
-# Run order matters: 02 lays the SQL/items foundation; 03–05 add features and
-# perf optimizations; 06 reshuffles navigation; 07 wires Jellyfin + YouTube +
-# endpoint security; 08 adds i18n + theater + homepage; 09 adds abandoned/
-# in-progress states; 10 finishes with CSS/bundle hash bumps + PWA.
+# The app itself, then the pre-compressed copies the server sends to clients that accept
+# br/gzip (Cloudflare always does): without them those clients would get stale files.
+COPY docker /docker
+COPY app/build /app/build
+COPY app/public /app/public
+RUN cd /app/public && node -e " \
+      const fs = require('fs'), zlib = require('zlib'); \
+      for (const f of fs.readdirSync('.').filter(f => /\.(js|css)$/.test(f))) { \
+        const d = fs.readFileSync(f); \
+        fs.writeFileSync(f + '.gz', zlib.gzipSync(d, { level: 9 })); \
+        fs.writeFileSync(f + '.br', zlib.brotliCompressSync(d)); \
+        console.log('compressed ' + f); \
+      } \
+      new Function(fs.readFileSync(fs.readdirSync('.').find(f => /^main_.*\.js$/.test(f)), 'utf8')); \
+      console.log('web client parses OK'); \
+    "
 
-# Bucket 02 — backend foundation (SQL pragmas, items query fixes, in-progress filter)
-RUN --mount=type=bind,source=patch_02_backend_db_items.js,target=/tmp/patch_02_backend_db_items.js node /tmp/patch_02_backend_db_items.js
-
-# Inline: force DD/MM/YYYY date format in the bundle (one-shot sed, not a patch).
-# Sits between buckets 02 and 03 — order is irrelevant since no later patch
-# expects the original `.toLocaleDateString()` pattern.
-RUN BUNDLE=$(ls /app/public/main_*.js) && \
-    sed -i 's/\.toLocaleDateString()/.toLocaleDateString("es",{day:"2-digit",month:"2-digit",year:"numeric"})/g' "$BUNDLE" && \
-    echo "Frontend: date format DD/MM/YYYY OK"
-
-# Bucket 03 — downloaded + links + watch-providers + small features
-RUN --mount=type=bind,source=patch_03_downloaded_links_wp.js,target=/tmp/patch_03_downloaded_links_wp.js node /tmp/patch_03_downloaded_links_wp.js
-
-# Bucket 04 — backup, audiobook, episodes, audio progress, UI tweaks
-RUN --mount=type=bind,source=patch_04_backup_audiobook_episodes.js,target=/tmp/patch_04_backup_audiobook_episodes.js node /tmp/patch_04_backup_audiobook_episodes.js
-
-# Bucket 05 — fetch_runtimes, hltb, cleanup, perf indexes, seen_kind, items query optimizations
-RUN --mount=type=bind,source=patch_05_perf_seen_items_opt.js,target=/tmp/patch_05_perf_seen_items_opt.js node /tmp/patch_05_perf_seen_items_opt.js
-
-# Bucket 06 — navigation reshuffle, dupes, late perf, security middleware
-RUN --mount=type=bind,source=patch_06_navigation_dupes_security.js,target=/tmp/patch_06_navigation_dupes_security.js node /tmp/patch_06_navigation_dupes_security.js
-
-# Bucket 07 — Jellyfin integration, endpoint security gates, YouTube + OAuth
-RUN --mount=type=bind,source=patch_07_jellyfin_youtube_oauth.js,target=/tmp/patch_07_jellyfin_youtube_oauth.js node /tmp/patch_07_jellyfin_youtube_oauth.js
-
-# Bucket 08 — i18n custom keys, UI language switcher, Theater providers, homepage finals
-RUN --mount=type=bind,source=patch_08_i18n_theater_homepage.js,target=/tmp/patch_08_i18n_theater_homepage.js node /tmp/patch_08_i18n_theater_homepage.js
-
-# Bucket 09 — abandoned + actively-in-progress + theater detail-page + count fixes
-RUN --mount=type=bind,source=patch_09_abandoned_inprogress_counts.js,target=/tmp/patch_09_abandoned_inprogress_counts.js node /tmp/patch_09_abandoned_inprogress_counts.js
-
-# --- patch_11: serialize SQLite writes (pool.max=1) to kill BUSY storm on parallel TMDB inserts ---
-RUN --mount=type=bind,source=patch_11_db_pool_serialize.js,target=/tmp/patch_11_db_pool_serialize.js node /tmp/patch_11_db_pool_serialize.js
-
-# --- patch_12: in /in-progress, exclude non-tv items the user has already marked seen ---
-RUN --mount=type=bind,source=patch_12_inprogress_aip_excludes_seen.js,target=/tmp/patch_12_inprogress_aip_excludes_seen.js node /tmp/patch_12_inprogress_aip_excludes_seen.js
-
-# --- patch_13: on /api/progress?progress=1 (slider to 100%), also remove non-TV items from the watchlist ---
-RUN --mount=type=bind,source=patch_13_progress_completion_watchlist.js,target=/tmp/patch_13_progress_completion_watchlist.js node /tmp/patch_13_progress_completion_watchlist.js
-# --- patch_14: TV-only series-level "in progress" toggle button on detail page (right of sg) ---
-RUN --mount=type=bind,source=patch_14_aip_series_button.js,target=/tmp/patch_14_aip_series_button.js node /tmp/patch_14_aip_series_button.js
-# --- patch_17: details.inProgress computed flag + _AIPS button reflects it ---
-RUN --mount=type=bind,source=patch_17_button_reflects_in_progress.js,target=/tmp/patch_17_button_reflects_in_progress.js node /tmp/patch_17_button_reflects_in_progress.js
-# --- patch_18: engagement actions (Marcar en proceso / Add to watchlist) also unmark abandoned ---
-RUN --mount=type=bind,source=patch_18_recovery_actions_unabandon.js,target=/tmp/patch_18_recovery_actions_unabandon.js node /tmp/patch_18_recovery_actions_unabandon.js
-# --- patch_19: flag-change event + _AB/_AIPS sync + Reanudar re-adds to watchlist ---
-RUN --mount=type=bind,source=patch_19_flag_sync_event.js,target=/tmp/patch_19_flag_sync_event.js node /tmp/patch_19_flag_sync_event.js
-# --- patch_20: loosen AIP-manual gate + add inProgress computed flag + popup uses it ---
-RUN --mount=type=bind,source=patch_20_loose_aip_inprogress.js,target=/tmp/patch_20_loose_aip_inprogress.js node /tmp/patch_20_loose_aip_inprogress.js
-# --- patch_21: base filter includes abandoned items; _markCompleted also clears AIP ---
-RUN --mount=type=bind,source=patch_21_abandoned_visibility_complete_clears_aip.js,target=/tmp/patch_21_abandoned_visibility_complete_clears_aip.js node /tmp/patch_21_abandoned_visibility_complete_clears_aip.js
-# --- patch_22: swap _AIPS button colors (action-based: red=remove, green=add) ---
-RUN --mount=type=bind,source=patch_22_aips_swap_colors.js,target=/tmp/patch_22_aips_swap_colors.js node /tmp/patch_22_aips_swap_colors.js
-# --- patch_23: _AIPS for all media types; drop modal AIP toggle ---
-RUN --mount=type=bind,source=patch_23_universal_aips_drop_modal.js,target=/tmp/patch_23_universal_aips_drop_modal.js node /tmp/patch_23_universal_aips_drop_modal.js
-# --- patch_24: move _MAS next to _AIPS and match its outline style ---
-RUN --mount=type=bind,source=patch_24_move_mas_next_to_aips.js,target=/tmp/patch_24_move_mas_next_to_aips.js node /tmp/patch_24_move_mas_next_to_aips.js
-# --- patch_25: _AIPS per-fetch invalidation + inProgress respects abandoned ---
-RUN --mount=type=bind,source=patch_25_aips_per_call_invalidation.js,target=/tmp/patch_25_aips_per_call_invalidation.js node /tmp/patch_25_aips_per_call_invalidation.js
-# --- patch_26: items cache TTL 5min + progressive home render ---
-RUN --mount=type=bind,source=patch_26_home_perf.js,target=/tmp/patch_26_home_perf.js node /tmp/patch_26_home_perf.js
-# --- patch_27: TV seen flag requires status NOT Returning/InProduction/Planned ---
-RUN --mount=type=bind,source=patch_27_tv_seen_requires_ended.js,target=/tmp/patch_27_tv_seen_requires_ended.js node /tmp/patch_27_tv_seen_requires_ended.js
-# --- patch_28: card progress bar ignores the audioProgress=1 completed-pass sentinel ---
-RUN --mount=type=bind,source=patch_28_card_progress_sentinel.js,target=/tmp/patch_28_card_progress_sentinel.js node /tmp/patch_28_card_progress_sentinel.js
-# --- patch_29: list pages select audioProgress + first-unwatched-episode progress ---
-RUN --mount=type=bind,source=patch_29_list_items_progress_columns.js,target=/tmp/patch_29_list_items_progress_columns.js node /tmp/patch_29_list_items_progress_columns.js
-# --- patch_30: sidebar "Marcar como completado" atomic (no dup seen, awaits cleanup, clears AIP) ---
-RUN --mount=type=bind,source=patch_30_sidebar_complete_atomic.js,target=/tmp/patch_30_sidebar_complete_atomic.js node /tmp/patch_30_sidebar_complete_atomic.js
-# --- patch_31: items base filter accepts progress-only / AIP-only items ---
-RUN --mount=type=bind,source=patch_31_items_basefilter_progress.js,target=/tmp/patch_31_items_basefilter_progress.js node /tmp/patch_31_items_basefilter_progress.js
-# --- patch_32: metadata throttle rotates oldest-first (fixes refresh starvation) ---
-RUN --mount=type=bind,source=patch_32_metadata_rotate_oldest.js,target=/tmp/patch_32_metadata_rotate_oldest.js node /tmp/patch_32_metadata_rotate_oldest.js
-# --- patch_33: TV bulk mark-seen skips already-seen episodes (no dup passes) ---
-RUN --mount=type=bind,source=patch_33_seen_tv_skip_already_seen.js,target=/tmp/patch_33_seen_tv_skip_already_seen.js node /tmp/patch_33_seen_tv_skip_already_seen.js
-# --- patch_34: expose numberOfPages in /api/items and /api/list/items (page totals match the ficha) ---
-RUN --mount=type=bind,source=patch_34_pages_in_queries.js,target=/tmp/patch_34_pages_in_queries.js node /tmp/patch_34_pages_in_queries.js
-# --- patch_35: list query parity - downloaded flag, status case, seenWatched ---
-RUN --mount=type=bind,source=patch_35_list_parity.js,target=/tmp/patch_35_list_parity.js node /tmp/patch_35_list_parity.js
-
-# --- patch_36: PUT /api/seen removes finished TV shows from the watchlist ---
-RUN --mount=type=bind,source=patch_36_tv_watchlist_on_seen.js,target=/tmp/patch_36_tv_watchlist_on_seen.js node /tmp/patch_36_tv_watchlist_on_seen.js
-
-# --- patch_37: watchlist sections ordered by "recently added to the watchlist" ---
-RUN --mount=type=bind,source=patch_37_watchlist_order_added.js,target=/tmp/patch_37_watchlist_order_added.js node /tmp/patch_37_watchlist_order_added.js
-
-# --- patch_38: progress modal shows hours+minutes for movies/games (not bare minutes) ---
-RUN --mount=type=bind,source=patch_38_progress_modal_hours_minutes.js,target=/tmp/patch_38_progress_modal_hours_minutes.js node /tmp/patch_38_progress_modal_hours_minutes.js
-
-# --- patch_39: same hours+minutes progress for TV episodes (card + per-episode button) ---
-RUN --mount=type=bind,source=patch_39_episode_progress_hours_minutes.js,target=/tmp/patch_39_episode_progress_hours_minutes.js node /tmp/patch_39_episode_progress_hours_minutes.js
-
-# --- patch_40: progress written in one view shows up in the others (cache + list query) ---
-RUN --mount=type=bind,source=patch_40_progress_sync_views.js,target=/tmp/patch_40_progress_sync_views.js node /tmp/patch_40_progress_sync_views.js
-
-# --- patch_41: /youtube "Marcar visto" ya no depende de que YouTube suelte la duracion ---
-RUN --mount=type=bind,source=patch_41_youtube_watched_resilient.js,target=/tmp/patch_41_youtube_watched_resilient.js node /tmp/patch_41_youtube_watched_resilient.js
-
-# --- patch_42: rediseno del acordeon de secciones (9 copias del mismo markup) ---
-RUN --mount=type=bind,source=patch_42_section_accordion_redesign.js,target=/tmp/patch_42_section_accordion_redesign.js node /tmp/patch_42_section_accordion_redesign.js
-
-# --- patch_43: shell a ancho completo, alineado con el nav en cualquier resolucion ---
-RUN --mount=type=bind,source=patch_43_shell_full_width.js,target=/tmp/patch_43_shell_full_width.js node /tmp/patch_43_shell_full_width.js
-
-# --- patch_44: una serie en emision sigue en En proceso aunque estes al dia ---
-RUN --mount=type=bind,source=patch_44_airing_tv_stays_in_progress.js,target=/tmp/patch_44_airing_tv_stays_in_progress.js node /tmp/patch_44_airing_tv_stays_in_progress.js
-
-# --- patch_45: barra principal homogeneizada con el resto (tokens de :root) ---
-RUN --mount=type=bind,source=patch_45_nav_redesign.js,target=/tmp/patch_45_nav_redesign.js node /tmp/patch_45_nav_redesign.js
-
-# --- patch_46: las secciones de En proceso arrancan abiertas ---
-RUN --mount=type=bind,source=patch_46_inprogress_sections_open.js,target=/tmp/patch_46_inprogress_sections_open.js node /tmp/patch_46_inprogress_sections_open.js
-
-# --- patch_47: la portada (Inicio) centrada, resumen y secciones ---
-RUN --mount=type=bind,source=patch_47_home_centered.js,target=/tmp/patch_47_home_centered.js node /tmp/patch_47_home_centered.js
-
-# --- patch_48: sin refetch espontaneo al recuperar foco o red (el parpadeo) ---
-RUN --mount=type=bind,source=patch_48_no_refetch_on_focus.js,target=/tmp/patch_48_no_refetch_on_focus.js node /tmp/patch_48_no_refetch_on_focus.js
-
-# --- patch_49: al acabar la temporada, la serie sale sola de En proceso ---
-RUN --mount=type=bind,source=patch_49_aip_drops_when_season_over.js,target=/tmp/patch_49_aip_drops_when_season_over.js node /tmp/patch_49_aip_drops_when_season_over.js
-
-# --- patch_51: la estrella de puntuar tambien en items sin fecha de estreno ---
-RUN --mount=type=bind,source=patch_51_rate_star_without_release_date.js,target=/tmp/patch_51_rate_star_without_release_date.js node /tmp/patch_51_rate_star_without_release_date.js
-
-# --- patch_52: nota de FilmAffinity (logo + puntuacion) en la ficha de pelis y series ---
-RUN --mount=type=bind,source=patch_52_filmaffinity_rating.js,target=/tmp/patch_52_filmaffinity_rating.js node /tmp/patch_52_filmaffinity_rating.js
-
-# --- patch_53: nota de Metacritic (logo + Metascore) en la ficha de los juegos ---
-RUN --mount=type=bind,source=patch_53_metacritic_rating.js,target=/tmp/patch_53_metacritic_rating.js node /tmp/patch_53_metacritic_rating.js
-
-# --- patch_54: al cambiar el status en el refresco de metadatos, re-evaluar
-#     si la serie ya completada debe salir de la lista de seguimiento ---
-RUN --mount=type=bind,source=patch_54_watchlist_recheck_on_metadata.js,target=/tmp/patch_54_watchlist_recheck_on_metadata.js node /tmp/patch_54_watchlist_recheck_on_metadata.js
-
-# --- patch_55: la estrella de puntuar sale aunque la fecha de estreno sea futura
-#     (ficha, caratula, episodio y temporada) ---
-RUN --mount=type=bind,source=patch_55_rate_ignore_release_date.js,target=/tmp/patch_55_rate_ignore_release_date.js node /tmp/patch_55_rate_ignore_release_date.js
-
-# --- patch_57: siguiente capitulo aunque no se haya emitido (AHS 13x2) y barra de
-#     progreso en lo fijado en En proceso aunque ya este completado (Stalker 2).
-#     Toca el bundle: tiene que ir ANTES de la recompresion.
-RUN --mount=type=bind,source=patch_57_ahead_episode_and_replay_bar.js,target=/tmp/patch_57_ahead_episode_and_replay_bar.js node /tmp/patch_57_ahead_episode_and_replay_bar.js
-# --- patch_58: el capitulo sin emitir de patch_57 solo si el ultimo visto tampoco
-#     se ha emitido (antes salia en toda serie al dia: Dark Matter, MobLand...)
-RUN --mount=type=bind,source=patch_58_ahead_episode_only_if_watched_ahead.js,target=/tmp/patch_58_ahead_episode_only_if_watched_ahead.js node /tmp/patch_58_ahead_episode_only_if_watched_ahead.js
-# --- patch_59: preferencia "Pagina de inicio" (Inicio / En proceso), por dispositivo.
-#     Toca el bundle: tiene que ir ANTES de la recompresion.
-RUN --mount=type=bind,source=patch_59_start_page_preference.js,target=/tmp/patch_59_start_page_preference.js node /tmp/patch_59_start_page_preference.js
-# --- patch_60: con "Pagina de inicio" = En proceso, la ruta "/" lleva ahi siempre
-#     (tambien tras el login) e Inicio pasa a /inicio. ANTES de patch_10.
-RUN --mount=type=bind,source=patch_60_start_page_route.js,target=/tmp/patch_60_start_page_route.js node /tmp/patch_60_start_page_route.js
-# --- patch_61: fallback SPA, las rutas del frontend (/in-progress...) sirven index.html al recargar
-RUN --mount=type=bind,source=patch_61_spa_fallback.js,target=/tmp/patch_61_spa_fallback.js node /tmp/patch_61_spa_fallback.js
-
-# --- patch_62: indicador de capitulos (computado) encima de barras leido/escuchado
-RUN --mount=type=bind,source=patch_62_chapter_indicator.js,target=/tmp/patch_62_chapter_indicator.js node /tmp/patch_62_chapter_indicator.js
-
-# --- patch_63: "Numero de capitulos" en la ficha (Audible real + estimado en libros). ANTES de patch_10.
-RUN --mount=type=bind,source=patch_63_chapters_metadata.js,target=/tmp/patch_63_chapters_metadata.js node /tmp/patch_63_chapters_metadata.js
-
-# --- patch_64: En proceso pinta al abrir su ultima respuesta (sin saltos de las secciones). ANTES de patch_10.
-RUN --mount=type=bind,source=patch_64_inprogress_instant_paint.js,target=/tmp/patch_64_inprogress_instant_paint.js node /tmp/patch_64_inprogress_instant_paint.js
-
-# --- patch_65: secciones con identidad estable (no remontar caratulas al re-renderizar la pagina). ANTES de patch_10.
-RUN --mount=type=bind,source=patch_65_stable_section_components.js,target=/tmp/patch_65_stable_section_components.js node /tmp/patch_65_stable_section_components.js
-
-# Bucket 10 — backgrounds, CSS rules, css_rename hash bump, tokens UI, jellyfin
-# import buttons, bundle_rename hash bump, index.html title, PWA manifest+SW.
-# This bucket MUST run last among the patches because css_rename and bundle_rename
-# bump content hashes — any later modification would orphan the new hash.
-RUN --mount=type=bind,source=patch_10_visual_tokens_bundle.js,target=/tmp/patch_10_visual_tokens_bundle.js node /tmp/patch_10_visual_tokens_bundle.js
-
-# --- Regenerate compressed bundle (.br and .gz) ---
-# The server serves pre-compressed versions when the browser supports them; if we
-# leave the originals (which were the upstream bundle), all our frontend patches
-# are silently bypassed for any client that sends Accept-Encoding: br|gzip
-# (Cloudflare always does).
-RUN BUNDLE=$(ls /app/public/main_*.js | grep -v '\.LICENSE\|\.map') && \
-    node -e "const fs=require('fs'),zlib=require('zlib');const p='$BUNDLE';const d=fs.readFileSync(p);fs.writeFileSync(p+'.gz',zlib.gzipSync(d,{level:9}));fs.writeFileSync(p+'.br',zlib.brotliCompressSync(d));console.log('Recompressed bundle:',p);"
-
-# --- patch_56: ver un capítulo antes de su estreno oficial no saca la serie
-#     de En proceso (AHS 13x1 visto el 26-sep, estreno TMDB 1-oct)
-RUN --mount=type=bind,source=patch_56_seen_ahead_of_air_stays_in_progress.js,target=/tmp/patch_56_seen_ahead_of_air_stays_in_progress.js node /tmp/patch_56_seen_ahead_of_air_stays_in_progress.js
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD wget -q -O /dev/null "http://$(hostname):7481/api/configuration" || exit 1
+ENTRYPOINT ["sh", "/docker/entrypoint.sh"]

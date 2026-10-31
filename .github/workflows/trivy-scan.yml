@@ -24,20 +24,20 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build mediatoc image (load locally only — no push)
+      - name: Build mediaocd image (load locally only — no push)
         # pipefail: without it `| tail` masks a failed build and the error
         # only surfaces later as Trivy's "unable to find the specified image".
         run: |
           set -o pipefail
           docker build \
-            --tag mediatoc:ci \
+            --tag mediaocd:ci \
             --progress=plain \
             . 2>&1 | tail -80
 
       - name: Trivy — fail on HIGH/CRITICAL
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: mediatoc:ci
+          image-ref: mediaocd:ci
           format: table
           severity: HIGH,CRITICAL
           exit-code: '1'
@@ -53,7 +53,7 @@ jobs:
         if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: mediatoc:ci
+          image-ref: mediaocd:ci
           format: table
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
           exit-code: '0'
@@ -65,7 +65,7 @@ jobs:
         if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: mediatoc:ci
+          image-ref: mediaocd:ci
           format: sarif
           output: trivy-results.sarif
           severity: MEDIUM,HIGH,CRITICAL

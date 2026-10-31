@@ -1,6 +1,6 @@
 [Unit]
-Description=Hardlink qBittorrent downloads into clean Jellyfin libraries (companion to MediaTOC)
-Documentation=https://github.com/javimentallab/mediatoc/tree/main/contrib/jf-torrents-organize
+Description=Hardlink qBittorrent downloads into clean Jellyfin libraries (companion to MediaOCD)
+Documentation=https://github.com/javimentallab/mediaocd/tree/main/contrib/jf-torrents-organize
 After=docker.service
 
 [Service]
